@@ -163,11 +163,22 @@ type=desktopswitch
 [quicklaunch]
 alignment=Left
 apps\1\desktop=/usr/share/applications/pcmanfm-qt.desktop
-apps\2\desktop=/usr/share/applications/qterminal.desktop
-apps\3\desktop=/usr/share/applications/featherpad.desktop
-apps\4\desktop=/usr/share/applications/alien-app-center.desktop
-apps\5\desktop=/usr/share/applications/code.desktop
-apps\size=5
+apps\2\desktop=/usr/share/applications/brave-browser.desktop
+apps\3\desktop=/usr/share/applications/telegramdesktop.desktop
+apps\4\desktop=/usr/share/applications/alien-webapp-whatsapp-web.desktop
+apps\5\desktop=/usr/share/applications/alien-webapp-instagram.desktop
+apps\6\desktop=/usr/share/applications/alien-webapp-tiktok.desktop
+apps\7\desktop=/usr/share/applications/alien-webapp-youtube.desktop
+apps\8\desktop=/usr/share/applications/alien-webapp-spotify.desktop
+apps\9\desktop=/usr/share/applications/vlc.desktop
+apps\10\desktop=/usr/share/applications/vlc.desktop
+apps\11\desktop=/usr/share/applications/alien-webapp-lichess.desktop
+apps\12\desktop=/usr/share/applications/qterminal.desktop
+apps\13\desktop=/usr/share/applications/featherpad.desktop
+apps\14\desktop=/usr/share/applications/lxqt-config.desktop
+apps\15\desktop=/usr/share/applications/alien-store.desktop
+apps\16\desktop=/usr/share/applications/code.desktop
+apps\size=16
 type=quicklaunch
 
 [taskbar]
@@ -408,8 +419,8 @@ StartupNotify=false
 Actions=AppCenter;
 
 [Desktop Action AppCenter]
-Name=App Center
-Exec=alien-app-center
+Name=Alien Store
+Exec=alien-store
 EOF
 
 # 2) alien-performance-mode
@@ -538,13 +549,16 @@ cat > "$DEST_LIVE_HOOKS/9998-alien-user-skel" <<'EOF'
 # 9998-alien-user-skel - Ensure live user receives all skel configs
 for u in alien user $(ls /home 2>/dev/null); do
     if [ -d "/home/$u" ]; then
-        mkdir -p "/home/$u/.config"
-        cp -a /etc/skel/.config/* "/home/$u/.config/" 2>/dev/null || true
-        if [ -d /etc/skel/Desktop ]; then
-            mkdir -p "/home/$u/Desktop"
-            cp -a /etc/skel/Desktop/* "/home/$u/Desktop/" 2>/dev/null || true
+        if [ ! -f "/home/$u/.config/alien/first-run-done" ]; then
+            mkdir -p "/home/$u/.config/alien"
+            cp -n -R /etc/skel/.config/* "/home/$u/.config/" 2>/dev/null || true
+            if [ -d /etc/skel/Desktop ]; then
+                mkdir -p "/home/$u/Desktop"
+                cp -n -R /etc/skel/Desktop/* "/home/$u/Desktop/" 2>/dev/null || true
+            fi
+            touch "/home/$u/.config/alien/first-run-done"
+            chown -R "$u:$u" "/home/$u"
         fi
-        chown -R "$u:$u" "/home/$u"
     fi
 done
 EOF

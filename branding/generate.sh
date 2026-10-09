@@ -160,4 +160,3 @@ montage -label '%f' "${OUT_DIR}/logos/logo-main-256.png" "${OUT_DIR}/logos/logo-
 cp "${OUT_DIR}/contact_sheet.png" "$(dirname "${BASH_SOURCE[0]}")/../docs/branding-screenshots/contact_sheet.png"
 
 echo "Generation complete."
-

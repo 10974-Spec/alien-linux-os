@@ -13,16 +13,16 @@ DEST_HOOKS="$WORK/config/hooks/normal"
 mkdir -p "$DEST_KEYRINGS" "$DEST_SOURCES" "$DEST_BIN" "$DEST_LOCAL_BIN" "$DEST_APPS" "$DEST_SKEL_VSCODE" "$DEST_HOOKS"
 
 # 1. Install APT Repositories & Keyrings for MongoDB and VS Code
-if [ -f "$SRC/build/config/keyrings/mongodb-server-8.0.gpg" ]; then
-    cp "$SRC/build/config/keyrings/mongodb-server-8.0.gpg" "$DEST_KEYRINGS/mongodb-server-8.0.gpg"
+if [ -f "$SRC/layers/shared/keyrings/mongodb-server-8.0.gpg" ]; then
+    cp "$SRC/layers/shared/keyrings/mongodb-server-8.0.gpg" "$DEST_KEYRINGS/mongodb-server-8.0.gpg"
     mkdir -p "$WORK/config/includes.chroot/usr/share/keyrings"
-    cp "$SRC/build/config/keyrings/mongodb-server-8.0.gpg" "$WORK/config/includes.chroot/usr/share/keyrings/mongodb-server-8.0.gpg"
+    cp "$SRC/layers/shared/keyrings/mongodb-server-8.0.gpg" "$WORK/config/includes.chroot/usr/share/keyrings/mongodb-server-8.0.gpg"
 fi
 
-if [ -f "$SRC/build/config/keyrings/packages.microsoft.gpg" ]; then
-    cp "$SRC/build/config/keyrings/packages.microsoft.gpg" "$DEST_KEYRINGS/packages.microsoft.gpg"
+if [ -f "$SRC/layers/shared/keyrings/packages.microsoft.gpg" ]; then
+    cp "$SRC/layers/shared/keyrings/packages.microsoft.gpg" "$DEST_KEYRINGS/packages.microsoft.gpg"
     mkdir -p "$WORK/config/includes.chroot/usr/share/keyrings"
-    cp "$SRC/build/config/keyrings/packages.microsoft.gpg" "$WORK/config/includes.chroot/usr/share/keyrings/packages.microsoft.gpg"
+    cp "$SRC/layers/shared/keyrings/packages.microsoft.gpg" "$WORK/config/includes.chroot/usr/share/keyrings/packages.microsoft.gpg"
 fi
 
 cat > "$DEST_SOURCES/mongodb-org-8.0.list" <<'EOF'

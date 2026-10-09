@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# alien-backup
+set -Eeuo pipefail
+
+if ! command -v zenity >/dev/null; then exit 0; fi
+
+SRC="${HOME}/"
+DEST=$(zenity --file-selection --directory --title="Select Backup Destination")
+
+if [ -n "$DEST" ]; then
+    zenity --question --title="Confirm Backup" --text="Backup $SRC to $DEST using rsync?"
+    if [ $? -eq 0 ]; then
+        rsync -av --progress "$SRC" "$DEST/alien-backup-$(date +%Y%m%d)/" | zenity --progress --pulsate --auto-close --title="Backing up..."
+        zenity --info --text="Backup complete!"
+    fi
+fi

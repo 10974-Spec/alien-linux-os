@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# alien-startup
+set -Eeuo pipefail
+
+if ! command -v zenity >/dev/null; then exit 0; fi
+
+zenity --info --title="Startup Manager" --text="To manage startup services, use the standard 'lxqt-config-session' tool or systemctl for background services."
+lxqt-config-session || true

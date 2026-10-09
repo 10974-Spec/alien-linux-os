@@ -1,0 +1,9 @@
+Package: alien-bundle-creative
+Version: 1.0
+Section: metapackages
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Description: Alien OS creative bundle
+ This is a metapackage for the creative add-on.
+Depends: gimp, inkscape, kdenlive

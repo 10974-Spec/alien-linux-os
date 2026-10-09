@@ -1,6 +1,6 @@
 # Alien OS Branding Guide
 
-Alien OS uses a centralized, single-source-of-truth branding engine to customize the visual identity of both the Full and Lite editions. 
+Alien OS uses a centralized, single-source-of-truth branding engine to customize the visual identity of both the Full and Lite editions.
 
 This guide explains how to respin the distribution with your own custom logo, wallpapers, fonts, and colors.
 

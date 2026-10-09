@@ -22,9 +22,13 @@ if [ -d cache/bootstrap ]; then
 fi
 
 # 2. Copy live-build shared config and then layer edition-specific config on top
-cp -a "$SRC/build/auto" "$SRC/build/config" .
-if [ -d "$SRC/build/config-$ALIEN_EDITION" ]; then
-  cp -a "$SRC/build/config-$ALIEN_EDITION"/* config/
+cp -a "$SRC/build/auto" .
+mkdir -p config
+if [ -d "$SRC/layers/shared" ]; then
+  cp -a "$SRC/layers/shared"/* config/
+fi
+if [ -d "$SRC/layers/$ALIEN_EDITION" ]; then
+  cp -a "$SRC/layers/$ALIEN_EDITION"/* config/
 fi
 cp "$SRC/alien.conf" .
 
@@ -53,9 +57,9 @@ lb config
 if [ "$ALIEN_EDITION" = "lite" ]; then
   # Overwrite specific options for the Lite edition
   lb config \
-    --bootappend-live "boot=live components quiet splash locales=$ALIEN_LOCALE keyboard-layouts=$ALIEN_KEYMAP timezone=$ALIEN_TIMEZONE hostname=$ALIEN_HOSTNAME username=$ALIEN_LIVE_USER toram persistence" \
-    --chroot-squashfs-compression-type xz
-  export MKSQUASHFS_OPTIONS="-b 1M -comp xz -Xdict-size 100% -Xbcj x86"
+    --bootappend-live "boot=live components quiet splash locales=$ALIEN_LOCALE keyboard-layouts=$ALIEN_KEYMAP timezone=$ALIEN_TIMEZONE hostname=$ALIEN_HOSTNAME username=$ALIEN_LIVE_USER toram persistence console=ttyS0" \
+    --chroot-squashfs-compression-type zstd
+  export MKSQUASHFS_OPTIONS="-b 1M -comp zstd -Xcompression-level 19"
 fi
 set +e
 lb build 2>&1 | tee "$SRC/out/build.log"

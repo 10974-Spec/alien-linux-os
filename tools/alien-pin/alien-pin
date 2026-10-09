@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# alien-pin
+# Pin or unpin an application to the LXQt quicklaunch panel.
+set -Eeuo pipefail
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/lxqt/panel.conf"
+DESKTOP_FILE="${1:-}"
+
+if [ -z "$DESKTOP_FILE" ]; then
+    if command -v zenity >/dev/null 2>&1; then
+        DESKTOP_FILE=$(zenity --file-selection --title="Select Application to Pin" --filename="/usr/share/applications/")
+        if [ -z "$DESKTOP_FILE" ]; then exit 0; fi
+    else
+        echo "Usage: alien-pin <path-to-desktop-file>"
+        exit 1
+    fi
+fi
+
+if [ ! -f "$DESKTOP_FILE" ]; then
+    echo "Error: File $DESKTOP_FILE does not exist."
+    exit 1
+fi
+
+if [ ! -f "$CONF" ]; then
+    echo "Error: Panel configuration $CONF not found."
+    exit 1
+fi
+
+# Check if already pinned
+if grep -q "desktop=$DESKTOP_FILE" "$CONF"; then
+    # Unpin
+    sed -i "\|desktop=$DESKTOP_FILE|d" "$CONF"
+    # Re-number apps (basic)
+    echo "Unpinned $DESKTOP_FILE"
+else
+    # Pin
+    # Find the [quicklaunch] section and the size
+    SIZE=$(awk -F= '/^\[quicklaunch\]/{f=1} f && /^apps\\size=/{print $2; exit}' "$CONF")
+    if [ -z "$SIZE" ]; then SIZE=0; fi
+    NEW_SIZE=$((SIZE + 1))
+    
+    # Replace size
+    sed -i "/^\[quicklaunch\]/,/^\[/ s/^apps\\\\size=$SIZE/apps\\\\size=$NEW_SIZE/" "$CONF"
+    # Insert new desktop line before size
+    sed -i "/^\[quicklaunch\]/,/^\[/ { /^apps\\\\size=$NEW_SIZE/i apps\\\\$NEW_SIZE\\\\desktop=$DESKTOP_FILE
+    }" "$CONF"
+    echo "Pinned $DESKTOP_FILE"
+fi
+
+# Reload panel (inotify handles this in lxqt-panel, or we can send a signal)
+killall -USR1 lxqt-panel 2>/dev/null || true
+
+# Persistence check
+if ! grep -q "persistence" /proc/cmdline; then
+    # Show notice if not shown before
+    MARKER="${XDG_CONFIG_HOME:-$HOME/.config}/alien/persistence-notice-shown"
+    if [ ! -f "$MARKER" ]; then
+        mkdir -p "$(dirname "$MARKER")"
+        touch "$MARKER"
+        if command -v zenity >/dev/null 2>&1; then
+            zenity --info --title="Pins in Memory Only" --text="Pins are kept in memory only. Turn on Save Session to keep them." --ok-label="Save and Persistence" 2>/dev/null && alien-control --page=save || true
+        fi
+    fi
+fi

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# alien-control
+set -Eeuo pipefail
+
+if ! command -v zenity >/dev/null; then
+    echo "zenity is required for alien-control."
+    exit 1
+fi
+
+PAGE="${1:-}"
+if [ "$PAGE" = "--page=save" ]; then
+    zenity --info --title="Save and Persistence" --text="Use alien-usb-installer --persistence to create a persistence drive."
+    exit 0
+fi
+
+while true; do
+    CHOICE=$(zenity --list --title="Alien Control Hub" \
+        --text="Select a tool to run:" \
+        --column="Tool" --column="Description" \
+        "Quick Setup" "Initial configuration wizard" \
+        "Network" "Connect to Wi-Fi & install firmware" \
+        "Display" "Screen resolution and drivers" \
+        "Drives" "Mount and unmount disks" \
+        "Startup Manager" "Manage autostart apps and services" \
+        "Layers" "Manage add-on SFS/sysext layers" \
+        "Save and Persistence" "Configure session saving" \
+        "USB Installer" "Write Alien to USB" \
+        "Remaster" "Create a new ISO from the current system" \
+        "Backup" "Simple rsync backup" \
+        "Dev Services" "Manage developer databases" \
+        "Alien Store" "Install and remove software" \
+        "About Alien" "System information" \
+        --width=600 --height=400 --cancel-label="Close")
+    
+    if [ -z "$CHOICE" ]; then
+        break
+    fi
+
+    case "$CHOICE" in
+        "Quick Setup") alien-quick-setup || true ;;
+        "Network") nmtui || true ;;
+        "Display") alien-display || true ;;
+        "Drives") pcmanfm-qt || true ;;
+        "Startup Manager") alien-startup || true ;;
+        "Layers") alien-layers || true ;;
+        "Save and Persistence") alien-control --page=save || true ;;
+        "USB Installer") pkexec alien-usb-installer-gui || x-terminal-emulator -e "alien-usb-installer --help" || true ;;
+        "Remaster") pkexec alien-remaster || true ;;
+        "Backup") alien-backup || true ;;
+        "Dev Services") pkexec systemctl restart postgresql mongod || true ;;
+        "Alien Store") alien-store || true ;;
+        "About Alien") alien-about || true ;;
+    esac
+done

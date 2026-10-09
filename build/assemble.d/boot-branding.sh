@@ -63,7 +63,7 @@ chmod +x "$WORK/config/hooks/normal/0050-plymouth-update.hook.chroot"
 
 
 # 2. Boot Menu (binary)
-# We place the background images into includes.binary so they get packaged, 
+# We place the background images into includes.binary so they get packaged,
 # and use a binary hook to edit the grub/syslinux configs after live-build generates them.
 
 mkdir -p "$WORK/config/includes.binary/isolinux"
@@ -97,7 +97,7 @@ menu color timeout  * #ffffffff #00000000 none
 MENU_EOF
     # Append actual entries
     grep -v "menu background" binary/isolinux/live.cfg >> binary/isolinux/menu.cfg || true
-    
+
     # Replace labels
     sed -i "s|Live system|$OS_TITLE|g" binary/isolinux/menu.cfg binary/isolinux/live.cfg binary/isolinux/install.cfg 2>/dev/null || true
     sed -i "s|Live ($OS_TITLE)|$OS_TITLE Live|g" binary/isolinux/*.cfg 2>/dev/null || true
@@ -107,7 +107,7 @@ fi
 if [ -f binary/boot/grub/grub.cfg ]; then
     # Insert theme settings before menuentries
     sed -i '/menuentry /,$!d' binary/boot/grub/grub.cfg
-    
+
     cat > binary/boot/grub/grub.cfg.new <<GRUB_EOF
 set default=0
 set timeout=5
@@ -118,7 +118,7 @@ set color_highlight=white/blue
 GRUB_EOF
     cat binary/boot/grub/grub.cfg >> binary/boot/grub/grub.cfg.new
     mv binary/boot/grub/grub.cfg.new binary/boot/grub/grub.cfg
-    
+
     # Replace labels
     sed -i "s|Live system|$OS_TITLE|g" binary/boot/grub/grub.cfg 2>/dev/null || true
     sed -i "s|Live ($OS_TITLE)|$OS_TITLE Live|g" binary/boot/grub/grub.cfg 2>/dev/null || true

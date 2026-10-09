@@ -105,7 +105,7 @@ cat > "$DEST_OS/motd" <<EOF
 
    Welcome to ${OS_NAME} @ALIEN_EDITION_CAPITALIZED@!
    Version: @ALIEN_VERSION@
-   
+
 EOF
 
 # Terminal bashrc branded banner

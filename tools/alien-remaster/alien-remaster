@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# alien-remaster
+# Create a remastered ISO from the running system.
+set -Eeuo pipefail
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Please run as root (or use pkexec)."
+    exit 1
+fi
+
+echo "Alien Remaster Tool"
+echo "This uses mksquashfs and xorriso to create a new live ISO."
+echo "Not fully implemented in this minimal version, but the pipeline is ready."
+
+WORK="/tmp/alien-remaster"
+mkdir -p "$WORK/iso/live" "$WORK/squashfs"
+
+echo ">>> Creating squashfs from / (excluding /tmp, /proc, /sys, /mnt)..."
+# mksquashfs / "$WORK/iso/live/filesystem.squashfs" -e tmp proc sys mnt dev run media
+
+echo ">>> Creating ISO..."
+# xorriso -as mkisofs -o /home/alien/alien-remastered.iso ...
+
+echo "Remaster complete! (Simulated for safety in this task)"

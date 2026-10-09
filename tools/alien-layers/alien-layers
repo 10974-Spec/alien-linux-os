@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# alien-layers
+# Manage systemd-sysext layers.
+set -Eeuo pipefail
+
+usage() {
+    echo "Usage: alien-layers <list|load|unload|create> [args]"
+    exit 1
+}
+
+CMD="${1:-}"
+if [ -z "$CMD" ]; then usage; fi
+shift
+
+case "$CMD" in
+    list)
+        echo "Available layers in /var/lib/extensions:"
+        ls /var/lib/extensions/*.raw 2>/dev/null || echo "None."
+        echo ""
+        echo "Currently loaded layers:"
+        systemd-sysext status || true
+        ;;
+    load)
+        echo "Refreshing sysext..."
+        pkexec systemd-sysext refresh
+        ;;
+    unload)
+        echo "Unmerging sysext..."
+        pkexec systemd-sysext unmerge
+        ;;
+    create)
+        OUT="$1"
+        shift
+        echo "Creating layer $OUT from packages: $@"
+        # simplified creation: download debs, extract, mksquashfs
+        # In a real environment we would use a chroot or dpkg-deb.
+        mkdir -p "/tmp/alien-layer-$OUT/usr"
+        cd "/tmp/alien-layer-$OUT"
+        apt-get download "$@" || true
+        for deb in *.deb; do
+            dpkg-deb -x "$deb" .
+            rm "$deb"
+        done
+        mksquashfs usr "$OUT.raw" -comp zstd
+        echo "Created $OUT.raw"
+        ;;
+    *)
+        usage
+        ;;
+esac

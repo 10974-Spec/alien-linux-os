@@ -32,14 +32,14 @@ import SddmComponents 2.0
 Rectangle {
     width: 1920
     height: 1080
-    
+
     Image {
         id: background
         anchors.fill: parent
         source: config.background
         fillMode: Image.PreserveAspectCrop
     }
-    
+
     // Top Right Clock
     Text {
         anchors.top: parent.top
@@ -49,7 +49,7 @@ Rectangle {
         font.pointSize: 24
         font.family: "DejaVu Sans"
         text: Qt.formatDateTime(new Date(), "hh:mm")
-        
+
         Timer {
             interval: 1000
             running: true
@@ -57,7 +57,7 @@ Rectangle {
             onTriggered: parent.text = Qt.formatDateTime(new Date(), "hh:mm")
         }
     }
-    
+
     // Centered Login Card
     Rectangle {
         width: 350
@@ -65,11 +65,11 @@ Rectangle {
         anchors.centerIn: parent
         color: "#AA1A1B26"
         radius: 8
-        
+
         ColumnLayout {
             anchors.centerIn: parent
             spacing: 20
-            
+
             Image {
                 source: config.logo
                 Layout.preferredWidth: 120
@@ -77,7 +77,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 fillMode: Image.PreserveAspectFit
             }
-            
+
             TextField {
                 id: userField
                 Layout.preferredWidth: 250
@@ -91,7 +91,7 @@ Rectangle {
                 }
                 color: "white"
             }
-            
+
             TextField {
                 id: passField
                 Layout.preferredWidth: 250
@@ -106,7 +106,7 @@ Rectangle {
                 color: "white"
                 onAccepted: sddm.login(userField.text, passField.text, session.index)
             }
-            
+
             Button {
                 text: "Login"
                 Layout.preferredWidth: 250
@@ -119,14 +119,14 @@ Rectangle {
             }
         }
     }
-    
+
     // Bottom Controls
     RowLayout {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: 20
         spacing: 10
-        
+
         ComboBox {
             id: session
             model: sessionModel
@@ -134,7 +134,7 @@ Rectangle {
             font.family: "DejaVu Sans"
             visible: false
         }
-        
+
         Button {
             text: "Reboot"
             font.family: "DejaVu Sans"

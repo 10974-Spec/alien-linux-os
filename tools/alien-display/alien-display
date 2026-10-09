@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# alien-display
+set -Eeuo pipefail
+
+if ! command -v zenity >/dev/null; then exit 0; fi
+
+# Display Wizard (Puppy Xorg wizard idea): resolution, scaling, driver choice
+CHOICE=$(zenity --list --title="Display Settings" --text="Select an action:" --column="Action" --column="Description" \
+    "Resolution" "Change screen resolution" \
+    "Driver" "Select graphics driver (modesetting/vesa/fbdev)" \
+    --cancel-label="Close")
+
+if [ "$CHOICE" = "Resolution" ]; then
+    RES=$(zenity --entry --title="Resolution" --text="Enter new resolution (e.g., 1920x1080):")
+    if [ -n "$RES" ]; then
+        xrandr -s "$RES" || zenity --error --text="Failed to set resolution."
+        zenity --question --title="Keep Settings?" --text="Does this look okay? Reverting in 15 seconds if you don't click Yes." --timeout=15 || xrandr -s 0
+    fi
+elif [ "$CHOICE" = "Driver" ]; then
+    zenity --info --title="Driver" --text="Current driver in use by Xorg. Change requires reboot with specific kernel parameters (e.g., nomodeset)."
+fi

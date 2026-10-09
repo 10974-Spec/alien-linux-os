@@ -17,6 +17,7 @@ MODE=live; FW=uefi
 for a in "$@"; do case "$a" in
   --bios) FW=bios ;; --install) MODE=install ;; --disk) MODE=disk ;;
   --reset) rm -f "$VM"/alien-disk.qcow2 "$VM"/OVMF_VARS*.fd; echo "VM reset."; exit 0 ;;
+  *.iso) ISO="$a" ;;
   *) echo "Unknown option: $a"; exit 1 ;;
 esac; done
 

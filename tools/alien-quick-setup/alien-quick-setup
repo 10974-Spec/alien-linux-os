@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# alien-quick-setup
+set -Eeuo pipefail
+
+if ! command -v zenity >/dev/null; then exit 0; fi
+
+zenity --question --title="Alien Quick Setup" --text="Welcome to Alien OS! Would you like to run the Quick Setup wizard to configure language, keyboard, and network?" || exit 0
+
+zenity --info --title="Language & Keyboard" --text="Currently using system defaults (English/US). Use 'Alien Control Hub' to change this later."
+zenity --info --title="Network" --text="Use the network icon in the bottom right panel to connect to Wi-Fi."
+zenity --question --title="Save Session" --text="Do you want to set up a persistence drive now?" && alien-control --page=save || true
+
+zenity --info --title="Setup Complete" --text="You're all set! Enjoy Alien OS."

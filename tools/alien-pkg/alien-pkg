@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# alien-pkg
+# Installs a package into a systemd-sysext layer
+set -Eeuo pipefail
+
+PKG="${1:-}"
+if [ -z "$PKG" ]; then
+    echo "Usage: alien-pkg <package-name>"
+    exit 1
+fi
+
+echo "Creating layer for $PKG..."
+alien-layers create "$PKG" "$PKG"
+
+echo "Moving layer to /var/lib/extensions..."
+pkexec mv "$PKG.raw" /var/lib/extensions/
+
+echo "Reloading layers..."
+alien-layers load

@@ -21,3 +21,6 @@ __pycache__/
 # Build work directories
 build/work/
 .build/
+.venv/
+*.log
+

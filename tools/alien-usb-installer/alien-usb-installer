@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# alien-usb-installer
+set -Eeuo pipefail
+
+# Ensure we're using the standard lib
+if [ -f "/usr/lib/alien/common.sh" ]; then
+    source "/usr/lib/alien/common.sh"
+elif [ -f "$(dirname "$0")/../../lib/common.sh" ]; then
+    source "$(dirname "$0")/../../lib/common.sh"
+else
+    die() { echo "ERROR: $*" >&2; exit 1; }
+    confirm() { read -r -p "$1 [y/N] " r; [[ $r == [yY]* ]] || return 1; }
+fi
+
+usage() {
+    echo "Usage: alien-usb-installer [OPTIONS] <iso-file> <device>"
+    echo "Options:"
+    echo "  --persistence    Create a persistence partition after writing"
+    echo "  --dry-run        Show what would be done, do not write anything"
+    exit 1
+}
+
+PERSISTENCE=0
+DRY_RUN=0
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --persistence) PERSISTENCE=1; shift ;;
+        --dry-run) DRY_RUN=1; shift ;;
+        -*) echo "Unknown option: $1"; usage ;;
+        *) break ;;
+    esac
+done
+
+if [ $# -ne 2 ]; then usage; fi
+ISO="$1"
+DEVICE="$2"
+
+if [ "$DRY_RUN" -eq 0 ] && [ "$(id -u)" -ne 0 ]; then
+    die "Must be root. Use sudo."
+fi
+
+if [ ! -f "$ISO" ]; then
+    die "ISO file not found: $ISO"
+fi
+if [ ! -b "$DEVICE" ]; then
+    die "Device not found or not a block device: $DEVICE"
+fi
+
+echo "TARGET DEVICE INFO:"
+lsblk -p -o NAME,SIZE,MODEL,TRAN "$DEVICE" || true
+echo ""
+echo "WARNING: All data on $DEVICE will be destroyed!"
+if [ "$DRY_RUN" -eq 0 ]; then
+    read -r -p "Type 'DESTROY' to proceed: " conf
+    if [ "$conf" != "DESTROY" ]; then die "Aborted."; fi
+fi
+
+echo ">>> Writing ISO to $DEVICE..."
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[DRY RUN] dd if=$ISO of=$DEVICE bs=4M status=progress"
+else
+    dd if="$ISO" of="$DEVICE" bs=4M status=progress oflag=sync
+fi
+
+if [ "$PERSISTENCE" -eq 1 ]; then
+    echo ">>> Creating persistence partition..."
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo "[DRY RUN] parted -s $DEVICE mkpart primary ext4 100% 100%"
+        echo "[DRY RUN] mkfs.ext4 -L persistence <partition>"
+    else
+        parted -s "$DEVICE" mkpart primary ext4 100% 100% || true
+        partprobe "$DEVICE" || true
+        sleep 2
+        # Find the newly created partition
+        PART="$(lsblk -l -p -o NAME "$DEVICE" | grep -E "^${DEVICE}[0-9p]+$" | sort -V | tail -n 1)"
+        if [ -n "$PART" ]; then
+            mkfs.ext4 -L persistence "$PART"
+            mkdir -p /mnt/alien-pers-tmp
+            mount "$PART" /mnt/alien-pers-tmp
+            echo "/ union" > /mnt/alien-pers-tmp/persistence.conf
+            umount /mnt/alien-pers-tmp
+            rmdir /mnt/alien-pers-tmp
+            echo ">>> Persistence setup complete."
+        else
+            echo ">>> Failed to detect new partition for persistence."
+        fi
+    fi
+fi
+
+echo ">>> Done."
