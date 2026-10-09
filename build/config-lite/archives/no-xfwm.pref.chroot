@@ -1,0 +1,3 @@
+Package: xfwm4 xfwm4-theme-breeze
+Pin: release *
+Pin-Priority: -1

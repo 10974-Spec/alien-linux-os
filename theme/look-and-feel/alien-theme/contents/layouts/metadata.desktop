@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Alien Layout
+Type=Service
+X-KDE-PluginInfo-Name=org.alien.desktop.layout
+X-KDE-PluginInfo-Version=1.0
+
+[X-KDE-Plasma-Layout]
+Type=Desktop
+Name=Alien Desktop
+Panels=Panel

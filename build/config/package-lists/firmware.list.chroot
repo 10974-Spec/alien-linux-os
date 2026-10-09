@@ -1,0 +1,20 @@
+# Alien — firmware and open-source graphics drivers (works on most laptops)
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-brcm80211
+firmware-mediatek
+firmware-libertas
+firmware-intel-sound
+firmware-sof-signed
+firmware-amd-graphics
+intel-microcode
+amd64-microcode
+
+# Open-source graphics (Intel / AMD / Nouveau) + video acceleration
+mesa-vulkan-drivers
+mesa-va-drivers
+libgl1-mesa-dri

@@ -1,0 +1,32 @@
+#!/bin/sh
+# Alien hook: Setup Flathub and install Flatpak apps
+# Removed set -e to prevent network timeouts from failing the entire ISO build
+
+echo ">>> Setting up Flathub repository..."
+count=0
+until flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo; do
+  count=$((count + 1))
+  if [ $count -eq 3 ]; then
+    echo "Warning: Flathub remote-add failed. Skipping."
+    break
+  fi
+  sleep 5
+done
+
+echo ">>> Installing Flatpak apps..."
+# Using --system so they are installed globally on the ISO
+max_retries=3
+count=0
+until flatpak install --system -y flathub com.brave.Browser org.telegram.desktop info.febvre.Komikku com.yacreader.YACReader; do
+  count=$((count + 1))
+  if [ $count -eq $max_retries ]; then
+    echo "Warning: Flatpak installation failed after $max_retries attempts. Ignoring to allow build to complete."
+    break
+  fi
+  echo "Flatpak install failed, retrying ($count/$max_retries)..."
+  sleep 5
+done
+
+# Pre-download the Flatpak runtimes (they'll be cached in the squashfs)
+echo ">>> Cleaning up Flatpak..."
+flatpak remove --unused -y

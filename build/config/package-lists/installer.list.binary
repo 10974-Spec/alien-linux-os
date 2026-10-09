@@ -1,0 +1,9 @@
+# Alien — packages stored on the ISO (not installed in the live system).
+# Calamares installs the right bootloader from here during installation,
+# so installing works even without internet.
+grub-efi-amd64
+grub-efi-amd64-signed
+shim-signed
+efibootmgr
+cryptsetup
+keyutils

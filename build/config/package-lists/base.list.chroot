@@ -1,0 +1,41 @@
+# Alien — core system (live session, locale, networking, audio, admin tools)
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+sudo
+locales
+console-setup
+keyboard-configuration
+tzdata
+user-setup
+
+# Networking
+network-manager
+wpasupplicant
+iw
+rfkill
+avahi-daemon
+
+# Audio (PipeWire + WirePlumber)
+pipewire-audio
+wireplumber
+pipewire-pulse
+pipewire-alsa
+
+# Bluetooth
+bluez
+
+# Handy basics
+ca-certificates
+curl
+wget
+nano
+less
+bash-completion
+command-not-found
+unzip
+zstd
+dosfstools
+ntfs-3g
+exfatprogs

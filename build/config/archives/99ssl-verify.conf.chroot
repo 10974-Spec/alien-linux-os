@@ -1,0 +1,3 @@
+# Allow apt to fetch packages.microsoft.com during chroot stage before ca-certificates is fully configured
+Acquire::https::packages.microsoft.com::Verify-Peer "false";
+Acquire::https::packages.microsoft.com::Verify-Host "false";

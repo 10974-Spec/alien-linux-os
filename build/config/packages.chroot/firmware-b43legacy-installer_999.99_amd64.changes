@@ -1,0 +1,25 @@
+Format: 1.8
+Date: Wed, 07 Oct 2026 19:30:09 +0000
+Source: firmware-b43legacy-installer
+Binary: firmware-b43legacy-installer
+Architecture: all
+Version: 1:999.99
+Distribution: unstable
+Urgency: low
+Maintainer: Equivs Dummy Package Generator <root@59aac0a1d043>
+Changed-By: Equivs Dummy Package Generator <root@59aac0a1d043>
+Description:
+ firmware-b43legacy-installer - Dummy
+Changes:
+ firmware-b43legacy-installer (1:999.99) unstable; urgency=low
+ .
+   * First version
+Checksums-Sha1:
+ 85b8032e8a7d96f462dffecc2850aa28ef4d7abf 2156 firmware-b43legacy-installer_999.99_all.deb
+ 86b5b298db47a699a42458400936f647b507bf24 4756 firmware-b43legacy-installer_999.99_amd64.buildinfo
+Checksums-Sha256:
+ cec9ffe1b766d74b21b853207ce549dcc5b43d009a5d4f3beedf9d1b8524ed3b 2156 firmware-b43legacy-installer_999.99_all.deb
+ 8b5c316d6785172e18d9ae112ef908f9c5f448d93425198b8e339ec677a87f4a 4756 firmware-b43legacy-installer_999.99_amd64.buildinfo
+Files:
+ 828dfb26d415a405776bcd0e2bf90258 2156 misc optional firmware-b43legacy-installer_999.99_all.deb
+ 571c67619331f31c8f9b4a162f504a67 4756 misc optional firmware-b43legacy-installer_999.99_amd64.buildinfo

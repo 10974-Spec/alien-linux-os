@@ -1,0 +1,15 @@
+[General]
+colorScheme=AlienLight
+iconTheme=Papirus
+cursorTheme=Bibata-Modern-Classic
+font=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+fixedFont=Roboto Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+smallFont=Inter,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+toolBarFont=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+menuFont=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+
+[KDE]
+widgetStyle=Breeze
+
+[WM]
+activeFont=Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1

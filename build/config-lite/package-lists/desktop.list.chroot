@@ -1,0 +1,13 @@
+# Alien Lite — LXQt Core Desktop Environment
+lxqt-core
+lxqt-panel
+lxqt-session
+lxqt-runner
+picom
+openbox
+pavucontrol-qt
+qterminal
+zram-tools
+zenity
+dconf-cli
+dconf-gsettings-backend

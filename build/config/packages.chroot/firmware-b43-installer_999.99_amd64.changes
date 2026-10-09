@@ -1,0 +1,25 @@
+Format: 1.8
+Date: Wed, 07 Oct 2026 19:30:07 +0000
+Source: firmware-b43-installer
+Binary: firmware-b43-installer
+Architecture: all
+Version: 1:999.99
+Distribution: unstable
+Urgency: low
+Maintainer: Equivs Dummy Package Generator <root@59aac0a1d043>
+Changed-By: Equivs Dummy Package Generator <root@59aac0a1d043>
+Description:
+ firmware-b43-installer - Dummy
+Changes:
+ firmware-b43-installer (1:999.99) unstable; urgency=low
+ .
+   * First version
+Checksums-Sha1:
+ 58bb071f0cf5cee0cb9e90471e776764a3066b8f 2152 firmware-b43-installer_999.99_all.deb
+ 240a0e37f52229eec2254d51c096017c381e80aa 4726 firmware-b43-installer_999.99_amd64.buildinfo
+Checksums-Sha256:
+ 878f34a3a8b9816fc93a356ae1e67bee2b48d50eeecc038498a0165d1e1c6f34 2152 firmware-b43-installer_999.99_all.deb
+ 0ddfa1e0dc011b06661be126112e87a90ec3d03a9da28cd3b91a3a965d146468 4726 firmware-b43-installer_999.99_amd64.buildinfo
+Files:
+ ec58fa9de27cbbbdb089ddacc81ea909 2152 misc optional firmware-b43-installer_999.99_all.deb
+ 129e920a36b135535f779416ad3c510c 4726 misc optional firmware-b43-installer_999.99_amd64.buildinfo

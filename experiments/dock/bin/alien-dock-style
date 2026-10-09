@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Alien OS Dock Style Switcher (Pill, Glass, Classic)
+set -euo pipefail
+
+STYLE="${1:-}"
+
+if [ -z "$STYLE" ]; then
+    if command -v zenity >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+        CHOICE=$(zenity --list --title="Alien Dock Style" --text="Select your preferred dock style:" \
+            --radiolist --column="" --column="Style" --column="Description" \
+            TRUE "Pill" "Floating dark pill dock with top status bar (Default)" \
+            FALSE "Glass" "Frosted glass dock with magnification" \
+            FALSE "Classic" "Traditional full-width bottom panel" \
+            --width=450 --height=230 || true)
+        if [ -z "$CHOICE" ]; then
+            exit 0
+        fi
+        STYLE="$(echo "$CHOICE" | tr '[:upper:]' '[:lower:]')"
+    else
+        echo "Usage: alien-dock-style <pill|glass|classic>"
+        exit 1
+    fi
+fi
+
+STYLE="$(echo "$STYLE" | tr '[:upper:]' '[:lower:]')"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/alien"
+mkdir -p "$CONFIG_DIR"
+echo "$STYLE" > "$CONFIG_DIR/dock-style"
+
+case "$STYLE" in
+    pill)
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme 'Alien-Pill' || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ icon-size 44 || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ zoom-enabled false || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ hide-mode 'none' || true
+        fi
+        if [ -f /usr/share/alien/panel-top.conf ]; then
+            mkdir -p "$HOME/.config/lxqt"
+            cp -f /usr/share/alien/panel-top.conf "$HOME/.config/lxqt/panel.conf"
+        fi
+        killall lxqt-panel 2>/dev/null || true
+        sleep 0.2
+        lxqt-panel &
+        pgrep -x plank >/dev/null || plank &
+        ;;
+    glass)
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme 'Alien-Glass' || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ icon-size 48 || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ zoom-enabled true || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ zoom-percent 150 || true
+            gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ hide-mode 'none' || true
+        fi
+        if [ -f /usr/share/alien/panel-top.conf ]; then
+            mkdir -p "$HOME/.config/lxqt"
+            cp -f /usr/share/alien/panel-top.conf "$HOME/.config/lxqt/panel.conf"
+        fi
+        killall lxqt-panel 2>/dev/null || true
+        sleep 0.2
+        lxqt-panel &
+        pgrep -x plank >/dev/null || plank &
+        ;;
+    classic)
+        killall plank 2>/dev/null || true
+        if [ -f /usr/share/alien/panel-bottom.conf ]; then
+            mkdir -p "$HOME/.config/lxqt"
+            cp -f /usr/share/alien/panel-bottom.conf "$HOME/.config/lxqt/panel.conf"
+        fi
+        killall lxqt-panel 2>/dev/null || true
+        sleep 0.2
+        lxqt-panel &
+        ;;
+    *)
+        echo "Unknown dock style: $STYLE. Valid options: pill, glass, classic."
+        exit 1
+        ;;
+esac
+
+echo "Switched dock style to: $STYLE"

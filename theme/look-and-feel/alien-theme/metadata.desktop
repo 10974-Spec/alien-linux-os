@@ -1,0 +1,12 @@
+[KPlugin]
+Name=Alien
+Description=ChromeOS-style layout for Alien
+Id=org.alien.desktop
+Version=1.0
+Author=Alien OS
+License=GPL
+
+[KPackageStructure]
+X-KDE-PluginInfo-Name=org.alien.desktop
+X-KDE-PluginInfo-Version=1.0
+X-KDE-PluginInfo-License=GPL

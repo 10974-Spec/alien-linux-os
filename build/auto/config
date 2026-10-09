@@ -1,0 +1,32 @@
+#!/bin/sh
+# Alien — live-build configuration. Values come from alien.conf.
+set -e
+. ./alien.conf
+
+lb config noauto \
+  --mode debian \
+  --distribution "$ALIEN_DEBIAN_SUITE" \
+  --architectures amd64 \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --mirror-bootstrap "$ALIEN_MIRROR" \
+  --mirror-chroot "$ALIEN_MIRROR" \
+  --mirror-binary "$ALIEN_MIRROR" \
+  --security true \
+  --updates true \
+  --binary-images iso-hybrid \
+  --bootloaders "syslinux,grub-efi" \
+  --debian-installer none \
+  --linux-flavours amd64 \
+  --firmware-binary true \
+  --firmware-chroot true \
+  --chroot-squashfs-compression-type zstd \
+  --memtest none \
+  --checksums sha256 \
+  --debootstrap-options "--include=ca-certificates" \
+  --cache true \
+  --iso-application "$ALIEN_NAME" \
+  --iso-publisher "$ALIEN_NAME Project" \
+  --iso-volume "${ALIEN_NAME}_${ALIEN_VERSION}" \
+  --image-name "$ALIEN_ID" \
+  --bootappend-live "boot=live components quiet splash locales=$ALIEN_LOCALE keyboard-layouts=$ALIEN_KEYMAP timezone=$ALIEN_TIMEZONE hostname=$ALIEN_HOSTNAME username=$ALIEN_LIVE_USER" \
+  "${@}"

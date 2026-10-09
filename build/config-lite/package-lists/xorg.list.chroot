@@ -1,0 +1,6 @@
+# Alien Lite — X.org and minimal login
+xorg
+xserver-xorg-video-qxl
+xserver-xorg-input-all
+lightdm
+lightdm-gtk-greeter

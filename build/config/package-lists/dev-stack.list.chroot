@@ -1,0 +1,8 @@
+# Alien Developer Stack (Preinstalled)
+postgresql
+postgresql-client
+pgcli
+mongodb-org-server
+mongodb-mongosh
+mongodb-database-tools
+code

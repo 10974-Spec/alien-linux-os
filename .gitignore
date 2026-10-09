@@ -1,0 +1,23 @@
+# Ignore ISO images and large builds in root and out/
+out/*.iso
+out/*.iso.sha256
+out/build.log
+out/baseline-backup/*.iso
+out/baseline-backup/*.iso.sha256
+
+# Ignore VM disk images and sockets
+vm/*.qcow2
+vm/*.sock
+vm/*.fd
+/tmp/qemu*
+
+# Python and temp
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+*.ppm
+
+# Build work directories
+build/work/
+.build/

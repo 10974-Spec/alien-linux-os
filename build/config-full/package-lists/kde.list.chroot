@@ -1,0 +1,19 @@
+# Alien — KDE Plasma 6 desktop (Wayland default, X11 fallback)
+kde-plasma-desktop
+plasma-workspace
+kwin-wayland
+kwin-x11
+sddm
+sddm-theme-breeze
+kde-config-sddm
+plasma-nm
+plasma-pa
+bluedevil
+powerdevil
+systemsettings
+kinfocenter
+xdg-desktop-portal-kde
+kio-extras
+ffmpegthumbs
+dolphin
+konsole

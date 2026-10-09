@@ -1,0 +1,1 @@
+deb [arch=amd64] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main

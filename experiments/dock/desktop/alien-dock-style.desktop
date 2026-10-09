@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Dock Style
+GenericName=Dock Style Switcher
+Comment=Switch between Pill, Glass, and Classic dock styles
+Exec=alien-dock-style
+Icon=preferences-desktop-theme
+Categories=Settings;DesktopSettings;Qt;LXQt;
