@@ -7,7 +7,9 @@ picom
 openbox
 pavucontrol-qt
 qterminal
+xterm
 zram-tools
+
 zenity
 dconf-cli
 dconf-gsettings-backend

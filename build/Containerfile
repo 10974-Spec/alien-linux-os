@@ -9,7 +9,7 @@ RUN apt-get update \
       grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed \
       grub-common mtools dosfstools isolinux syslinux syslinux-common syslinux-utils \
       ca-certificates curl wget gnupg rsync cpio zstd xz-utils file \
-      librsvg2-bin imagemagick python3 apt-utils \
+      librsvg2-bin imagemagick python3 apt-utils chafa \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /alien

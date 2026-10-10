@@ -2,6 +2,7 @@
 # Alien — Desktop and Identity Branding (Phases 5 & 6)
 set -euo pipefail
 
+# shellcheck source=/dev/null
 source "$SRC/branding/tokens.env"
 
 # --- Phase 5: Desktop ---
@@ -17,7 +18,7 @@ cp "$SRC/branding/generated/backgrounds/bg2-master.png" "$DEST_BG/alien-bg2.png"
 DEST_PLASMA_BG="$WORK/config/includes.chroot/usr/share/wallpapers/AlienBG1"
 mkdir -p "$DEST_PLASMA_BG/contents/images"
 cp "$SRC/branding/generated/backgrounds/bg1-1920x1080.png" "$DEST_PLASMA_BG/contents/images/1920x1080.png"
-cat > "$DEST_PLASMA_BG/metadata.desktop" <<EOF
+cat >"$DEST_PLASMA_BG/metadata.desktop" <<EOF
 [Desktop Entry]
 Name=Alien Default
 X-KDE-PluginInfo-Name=AlienBG1
@@ -40,7 +41,7 @@ cp "$SRC/branding/generated/icons/hicolor/64x64/apps/alien-launcher.png" "$DEST_
 # 3. Fonts and Theme Settings
 DEST_FONTS="$WORK/config/includes.chroot/etc/fonts/conf.d"
 mkdir -p "$DEST_FONTS"
-cat > "$DEST_FONTS/99-alien-fonts.conf" <<EOF
+cat >"$DEST_FONTS/99-alien-fonts.conf" <<EOF
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
@@ -58,7 +59,7 @@ EOF
 # KDE Font configuration
 DEST_KDE="$WORK/config/includes.chroot/etc/skel/.config"
 mkdir -p "$DEST_KDE"
-cat > "$DEST_KDE/kdeglobals" <<EOF
+cat >"$DEST_KDE/kdeglobals" <<EOF
 [General]
 font=${FONT_UI},10,-1,5,50,0,0,0,0,0
 fixed=${FONT_MONO},10,-1,5,50,0,0,0,0,0
@@ -67,14 +68,13 @@ EOF
 # Replace ALIEN_ACCENT in colors.sh with the one from tokens.env
 sed -i "s|ACCENT=.*|ACCENT=\"${COLOR_ACCENT}\"|" "$SRC/build/assemble.d/colors.sh" || true
 
-
 # --- Phase 6: System Identity ---
 
 # 1. os-release and issue
 DEST_OS="$WORK/config/includes.chroot/etc"
 mkdir -p "$DEST_OS"
 
-cat > "$DEST_OS/os-release" <<EOF
+cat >"$DEST_OS/os-release" <<EOF
 PRETTY_NAME="${OS_NAME} @ALIEN_EDITION_CAPITALIZED@ @ALIEN_VERSION@"
 NAME="${OS_NAME}"
 VERSION_ID="@ALIEN_VERSION@"
@@ -85,38 +85,99 @@ ID_LIKE=debian
 HOME_URL="https://github.com/alien-os"
 EOF
 
-cat > "$DEST_OS/lsb-release" <<EOF
+cat >"$DEST_OS/lsb-release" <<EOF
 DISTRIB_ID="${OS_NAME}"
 DISTRIB_RELEASE="@ALIEN_VERSION@"
 DISTRIB_CODENAME="@ALIEN_ID@"
 DISTRIB_DESCRIPTION="${OS_NAME} @ALIEN_EDITION_CAPITALIZED@ @ALIEN_VERSION@"
 EOF
 
-cat > "$DEST_OS/issue" <<EOF
+cat >"$DEST_OS/issue" <<EOF
 ${OS_NAME} @ALIEN_EDITION_CAPITALIZED@ @ALIEN_VERSION@ \n \l
 
 EOF
 
-cat > "$DEST_OS/issue.net" <<EOF
+cat >"$DEST_OS/issue.net" <<EOF
 ${OS_NAME} @ALIEN_EDITION_CAPITALIZED@ @ALIEN_VERSION@
 EOF
 
-cat > "$DEST_OS/motd" <<EOF
+cat >"$DEST_OS/motd" <<EOF
 
    Welcome to ${OS_NAME} @ALIEN_EDITION_CAPITALIZED@!
    Version: @ALIEN_VERSION@
 
 EOF
 
-# Terminal bashrc branded banner
-cat >> "$DEST_OS/bash.bashrc" <<'EOF'
-if [ -n "$PS1" ]; then
-  # Simple banner for Alien
-  echo -e "\033[1;34m"
-  echo "    /\ "
-  echo "   /  \    Alien OS"
-  echo "  /____\   Your world, your way."
-  echo -e "\033[0m"
+# Terminal Banner Assets and Config
+DEST_BANNER="$WORK/config/includes.chroot/usr/share/alien/banner"
+mkdir -p "$DEST_BANNER"
+if [ -d "$SRC/branding/generated/banner" ]; then
+	cp -a "$SRC/branding/generated/banner/"* "$DEST_BANNER/"
+fi
+
+# Optional Fastfetch config using the Alien logo
+DEST_FASTFETCH="$WORK/config/includes.chroot/etc/fastfetch"
+mkdir -p "$DEST_FASTFETCH"
+cat >"$DEST_FASTFETCH/config.jsonc" <<'EOF'
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "/usr/share/alien/banner/logo-full.ans",
+    "type": "raw",
+    "padding": {
+      "top": 1,
+      "left": 2,
+      "right": 3
+    }
+  },
+  "modules": [
+    "title",
+    "separator",
+    "os",
+    "kernel",
+    "uptime",
+    "packages",
+    "shell",
+    "wm",
+    "terminal",
+    "cpu",
+    "memory",
+    "break",
+    "colors"
+  ]
+}
+EOF
+
+# Optional Pixel-Perfect Terminal Desktop Entry (xterm with Sixel)
+DEST_PIXEL_TERM="$WORK/config/includes.chroot/usr/share/applications"
+mkdir -p "$DEST_PIXEL_TERM"
+cat >"$DEST_PIXEL_TERM/alien-terminal-pixel.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Alien Terminal (pixel-perfect logo)
+GenericName=Pixel-Perfect Terminal
+Comment=Terminal emulator with pixel-exact Sixel graphics support
+Exec=xterm -ti vt340 -fa "DejaVu Sans Mono" -fs 11 -bg "#1e1e2e" -fg "#cdd6f4" -geometry 90x28 -e bash -c "alien-banner --sixel; exec bash"
+Icon=alien-launcher
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=terminal;sixel;graphics;console;
+EOF
+
+# Terminal bashrc branded banner hook (once per terminal, interactive only)
+cat >>"$DEST_OS/bash.bashrc" <<'EOF'
+# Alien OS Interactive Welcome Banner
+if [ -t 1 ] && case "$-" in *i*) true;; *) false;; esac; then
+  if [ -z "${ALIEN_NO_BANNER:-}" ] && [ ! -f "${HOME:-}/.config/alien/no-banner" ]; then
+    _alien_tty="$(tty 2>/dev/null || echo "notty")"
+    if [ "${_ALIEN_BANNER_TTY:-}" != "$_alien_tty" ]; then
+      export _ALIEN_BANNER_TTY="$_alien_tty"
+      if command -v alien-banner >/dev/null 2>&1; then
+        alien-banner
+      fi
+    fi
+    unset _alien_tty
+  fi
 fi
 EOF
 
@@ -125,7 +186,7 @@ DEST_CAL="$WORK/config/includes.chroot/etc/calamares/branding/alien"
 mkdir -p "$DEST_CAL"
 
 # Modify branding.desc to use variables and add slideshow
-cat > "$DEST_CAL/branding.desc" <<EOF
+cat >"$DEST_CAL/branding.desc" <<EOF
 ---
 componentName:  alien
 
@@ -153,7 +214,7 @@ style:
 EOF
 
 # Minimal QML Slideshow
-cat > "$DEST_CAL/show.qml" <<EOF
+cat >"$DEST_CAL/show.qml" <<EOF
 import QtQuick 2.0
 import calamares.slideshow 1.0
 

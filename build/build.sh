@@ -20,10 +20,15 @@ IMAGE="alien-builder:trixie"
 CACHE_VOL="alien-build-cache"
 
 # Pick container engine
-if command -v podman >/dev/null; then
+if [ -n "${CONTAINER_ENGINE:-}" ]; then
+  ENGINE=($CONTAINER_ENGINE)
+elif docker info >/dev/null 2>&1; then
+  ENGINE=(docker)
+elif command -v podman >/dev/null; then
   ENGINE=(sudo podman)          # live-build needs a root (privileged) container
 elif command -v docker >/dev/null; then
   ENGINE=(docker)
+
 else
   echo "ERROR: install Podman or Docker first (see docs/01-setup-build-environment.md)"; exit 1
 fi

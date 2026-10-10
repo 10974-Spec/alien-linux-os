@@ -9,15 +9,33 @@ ETC_LXQT="$WORK/config/includes.chroot/etc/xdg/lxqt"
 ETC_PCMANFM="$WORK/config/includes.chroot/etc/xdg/pcmanfm-qt/lxqt"
 ETC_OPENBOX="$WORK/config/includes.chroot/etc/xdg/openbox"
 ETC_AUTOSTART="$WORK/config/includes.chroot/etc/xdg/autostart"
+ETC_QTERMINAL="$WORK/config/includes.chroot/etc/xdg/qterminal.org"
 
 SKEL_LXQT="$WORK/config/includes.chroot/etc/skel/.config/lxqt"
 SKEL_PCMANFM="$WORK/config/includes.chroot/etc/skel/.config/pcmanfm-qt/lxqt"
 SKEL_OPENBOX="$WORK/config/includes.chroot/etc/skel/.config/openbox"
 SKEL_AUTOSTART="$WORK/config/includes.chroot/etc/skel/.config/autostart"
 SKEL_ALIEN="$WORK/config/includes.chroot/etc/skel/.config/alien"
+SKEL_QTERMINAL="$WORK/config/includes.chroot/etc/skel/.config/qterminal.org"
 
-mkdir -p "$ETC_LXQT" "$ETC_PCMANFM" "$ETC_OPENBOX" "$ETC_AUTOSTART"
-mkdir -p "$SKEL_LXQT" "$SKEL_PCMANFM" "$SKEL_OPENBOX" "$SKEL_AUTOSTART" "$SKEL_ALIEN"
+mkdir -p "$ETC_LXQT" "$ETC_PCMANFM" "$ETC_OPENBOX" "$ETC_AUTOSTART" "$ETC_QTERMINAL"
+mkdir -p "$SKEL_LXQT" "$SKEL_PCMANFM" "$SKEL_OPENBOX" "$SKEL_AUTOSTART" "$SKEL_ALIEN" "$SKEL_QTERMINAL"
+
+# Preseed QTerminal defaults (DejaVu Sans Mono 11, lineSpacing=0, 90x28 geometry)
+cat > "$ETC_QTERMINAL/qterminal.ini" <<EOF
+[General]
+AskOnClose=false
+fontFamily=DejaVu Sans Mono
+fontSize=11
+lineSpacing=0
+colorScheme=Dark
+terminalWidth=90
+terminalHeight=28
+saveSize=true
+showMenuBar=true
+EOF
+cp -a "$ETC_QTERMINAL/qterminal.ini" "$SKEL_QTERMINAL/qterminal.ini"
+
 
 # Ensure Alien wallpaper is in backgrounds
 DEST_BG="$WORK/config/includes.chroot/usr/share/backgrounds"

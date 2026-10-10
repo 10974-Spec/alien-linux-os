@@ -1,0 +1,266 @@
+#!/bin/sh
+# Alien OS — High-Fidelity Terminal Welcome Banner
+# Displays the real Alien logo alongside system information.
+# Target runtime: < 30 ms (pure shell builtins for procfs parsing).
+set -u
+
+# 1. Opt-out check
+if [ -n "${ALIEN_NO_BANNER:-}" ] || [ -f "${HOME:-/root}/.config/alien/no-banner" ]; then
+	exit 0
+fi
+
+# 2. Asset directory discovery
+BANNER_DIR="/usr/share/alien/banner"
+if [ ! -d "$BANNER_DIR" ]; then
+	# Local workspace fallback during development
+	SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+	BANNER_DIR="$SELF_DIR/../../branding/generated/banner"
+fi
+
+# Parse CLI arguments
+FORCE_STYLE=""
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--sticker) FORCE_STYLE="sticker" ;;
+	--transparent) FORCE_STYLE="transparent" ;;
+	--compact) FORCE_STYLE="compact" ;;
+	--text) FORCE_STYLE="text" ;;
+	--sixel) FORCE_STYLE="sixel" ;;
+	--style=*) FORCE_STYLE="${1#*=}" ;;
+	-h | --help)
+		echo "Usage: alien-banner [OPTIONS]"
+		echo "Options:"
+		echo "  --sticker       Use sticker panel logo (default, dark-background safe)"
+		echo "  --transparent   Use transparent background logo"
+		echo "  --compact       Use compact head logo (24x12)"
+		echo "  --text          Use plain text banner"
+		echo "  --sixel         Output sixel graphics (requires sixel terminal)"
+		exit 0
+		;;
+	*) ;;
+	esac
+	shift
+done
+
+STYLE="${FORCE_STYLE:-${ALIEN_BANNER_STYLE:-sticker}}"
+
+# 3. Terminal geometry detection
+cols="${COLUMNS:-}"
+lines="${LINES:-}"
+if [ -z "$cols" ] || [ "$cols" -le 0 ] 2>/dev/null; then
+	if command -v stty >/dev/null 2>&1; then
+		size="$(stty size 2>/dev/null || echo "")"
+		if [ -n "$size" ]; then
+			lines="${size% *}"
+			cols="${size#* }"
+		fi
+	fi
+fi
+cols="${cols:-80}"
+lines="${lines:-24}"
+
+# 4. Color capability & mode detection
+COLOR_MODE="truecolor"
+TERM_NAME="${TERM:-xterm}"
+COLORTERM_VAL="${COLORTERM:-}"
+
+if [ -n "${NO_COLOR:-}" ]; then
+	COLOR_MODE="none"
+elif [ "$TERM_NAME" = "linux" ] || [ "$TERM_NAME" = "dumb" ]; then
+	COLOR_MODE="16"
+elif [ "$COLORTERM_VAL" = "truecolor" ] || [ "$COLORTERM_VAL" = "24bit" ]; then
+	COLOR_MODE="truecolor"
+elif case "$TERM_NAME" in *256color* | *256*) true ;; *) false ;; esac then
+	COLOR_MODE="256"
+else
+	COLOR_MODE="16"
+fi
+
+# Geometry overrides
+if [ "$cols" -lt 55 ] || [ "$lines" -lt 14 ]; then
+	STYLE="text"
+elif [ "$cols" -lt 80 ] && [ "$STYLE" != "text" ] && [ "$STYLE" != "sixel" ]; then
+	STYLE="compact"
+fi
+
+# Handle Sixel requested
+if [ "$STYLE" = "sixel" ]; then
+	sixel_file="$BANNER_DIR/logo-pixel.six"
+	if [ -f "$sixel_file" ]; then
+		cat "$sixel_file"
+		echo
+		exit 0
+	fi
+fi
+
+# 5. Fast System Info Gathering (Builtins / Procfs)
+# 5.1 OS Name & Version
+os_name="Alien OS"
+os_version="0.1 (Trixie)"
+if [ -f /etc/os-release ]; then
+	while IFS='=' read -r key val; do
+		val="${val%\"}"
+		val="${val#\"}"
+		case "$key" in
+		PRETTY_NAME) os_version="$val" ;;
+		NAME) [ -n "$val" ] && os_name="$val" ;;
+		esac
+	done </etc/os-release
+fi
+
+# 5.2 Kernel
+kernel="$(uname -r 2>/dev/null || echo "Linux")"
+
+# 5.3 Uptime from /proc/uptime
+uptime_str="unknown"
+if [ -f /proc/uptime ]; then
+	read -r up_secs _ </proc/uptime
+	up_s="${up_secs%%.*}"
+	if [ -n "$up_s" ] && [ "$up_s" -ge 0 ] 2>/dev/null; then
+		days=$((up_s / 86400))
+		hours=$(((up_s % 86400) / 3600))
+		mins=$(((up_s % 3600) / 60))
+		if [ "$days" -gt 0 ]; then
+			uptime_str="${days}d ${hours}h ${mins}m"
+		elif [ "$hours" -gt 0 ]; then
+			uptime_str="${hours}h ${mins}m"
+		else
+			uptime_str="${mins}m"
+		fi
+	fi
+fi
+
+# 5.4 RAM from /proc/meminfo
+ram_str="unknown"
+if [ -f /proc/meminfo ]; then
+	mem_total=0
+	mem_avail=0
+	while IFS=': ' read -r key val _; do
+		case "$key" in
+		MemTotal) mem_total=$((val / 1024)) ;;
+		MemAvailable) mem_avail=$((val / 1024)) ;;
+		esac
+		if [ "$mem_total" -gt 0 ] && [ "$mem_avail" -gt 0 ]; then
+			break
+		fi
+	done </proc/meminfo
+	if [ "$mem_total" -gt 0 ]; then
+		mem_used=$((mem_total - mem_avail))
+		ram_str="${mem_used} MB / ${mem_total} MB"
+	fi
+fi
+
+# 5.5 Shell
+shell_name="${SHELL:-/bin/bash}"
+shell_name="${shell_name##*/}"
+
+# 5.6 Session Type
+session_type="${XDG_SESSION_TYPE:-x11}"
+case "$session_type" in
+x11) session_str="X11 (LXQt 2.1)" ;;
+wayland) session_str="Wayland" ;;
+tty) session_str="Console (TTY)" ;;
+*) session_str="$session_type" ;;
+esac
+
+# 6. Fallback Plain Text Banner
+if [ "$STYLE" = "text" ] || [ "$COLOR_MODE" = "none" ]; then
+	printf "===============================================\n"
+	printf "  %s - %s\n" "$os_name" "Your world, your way."
+	printf "  Kernel:  %s\n" "$kernel"
+	printf "  Uptime:  %s\n" "$uptime_str"
+	printf "  Memory:  %s\n" "$ram_str"
+	printf "  Shell:   %s\n" "$shell_name"
+	printf "  Session: %s\n" "$session_str"
+	printf "===============================================\n"
+	exit 0
+fi
+
+# 7. Select ANSI logo file
+logo_file=""
+if [ "$COLOR_MODE" = "16" ]; then
+	logo_file="$BANNER_DIR/logo-16.ans"
+elif [ "$STYLE" = "compact" ]; then
+	if [ "$COLOR_MODE" = "256" ]; then
+		logo_file="$BANNER_DIR/logo-compact-sticker.ans"
+	else
+		logo_file="$BANNER_DIR/logo-compact-sticker.ans"
+	fi
+elif [ "$STYLE" = "transparent" ]; then
+	if [ "$COLOR_MODE" = "256" ]; then
+		logo_file="$BANNER_DIR/logo-full-256-transparent.ans"
+	else
+		logo_file="$BANNER_DIR/logo-full-transparent.ans"
+	fi
+else
+	# Default: sticker
+	if [ "$COLOR_MODE" = "256" ]; then
+		logo_file="$BANNER_DIR/logo-full-256-sticker.ans"
+	else
+		logo_file="$BANNER_DIR/logo-full-sticker.ans"
+	fi
+fi
+
+# Fallback if selected file is missing
+if [ ! -f "$logo_file" ]; then
+	logo_file="$BANNER_DIR/logo-full.ans"
+fi
+
+if [ ! -f "$logo_file" ]; then
+	# Fallback if no artwork files present
+	printf "Alien OS — Your world, your way.\n"
+	exit 0
+fi
+
+# 8. Format Info Lines Beside Logo
+# ANSI Palette definitions
+c_cyan="\033[1;36m"
+c_dim="\033[2m"
+c_white="\033[1;37m"
+c_div="\033[38;2;120;120;140m"
+c_reset="\033[0m"
+
+if [ "$COLOR_MODE" = "16" ]; then
+	c_div="\033[36m"
+fi
+
+info_0=""
+info_1=""
+info_2="${c_cyan}${os_name}${c_reset} ${c_dim}${os_version}${c_reset}"
+info_3="${c_div}-----------------------------------${c_reset}"
+info_4="${c_white}Tagline:${c_reset}   Your world, your way."
+info_5="${c_white}Kernel:${c_reset}    $kernel"
+info_6="${c_white}Uptime:${c_reset}    $uptime_str"
+info_7="${c_white}Memory:${c_reset}    $ram_str"
+info_8="${c_white}Shell:${c_reset}     $shell_name"
+info_9="${c_white}Session:${c_reset}   $session_str"
+info_10="${c_div}-----------------------------------${c_reset}"
+info_11="\033[30m● \033[31m● \033[32m● \033[33m● \033[34m● \033[35m● \033[36m● \033[37m●${c_reset}"
+
+idx=0
+while IFS= read -r line || [ -n "$line" ]; do
+	info_text=""
+	case "$idx" in
+	0) info_text="$info_0" ;;
+	1) info_text="$info_1" ;;
+	2) info_text="$info_2" ;;
+	3) info_text="$info_3" ;;
+	4) info_text="$info_4" ;;
+	5) info_text="$info_5" ;;
+	6) info_text="$info_6" ;;
+	7) info_text="$info_7" ;;
+	8) info_text="$info_8" ;;
+	9) info_text="$info_9" ;;
+	10) info_text="$info_10" ;;
+	11) info_text="$info_11" ;;
+	*) info_text="" ;;
+	esac
+
+	if [ -n "$info_text" ]; then
+		printf "%s   %b\n" "$line" "$info_text"
+	else
+		printf "%s\n" "$line"
+	fi
+	idx=$((idx + 1))
+done <"$logo_file"
+printf "%b\n" "$c_reset"

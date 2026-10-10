@@ -12,16 +12,16 @@ mkdir -p "${OUT_DIR}/plymouth"
 mkdir -p "${OUT_DIR}/web"
 
 # Dependencies check
-if ! command -v convert &> /dev/null; then
-    echo "ImageMagick (convert) is required. Please install it."
-    exit 1
+if ! command -v convert &>/dev/null; then
+	echo "ImageMagick (convert) is required. Please install it."
+	exit 1
 fi
 
 echo "Generating assets into ${OUT_DIR}..."
 
 # 1. Logo Main (PNGs and single colors)
 for size in 64 128 256 512 1024; do
-    convert -background none "${SRC_DIR}/logo-main.svg" -resize ${size}x${size} "${OUT_DIR}/logos/logo-main-${size}.png"
+	convert -background none "${SRC_DIR}/logo-main.svg" -resize ${size}x${size} "${OUT_DIR}/logos/logo-main-${size}.png"
 done
 
 # Single color versions (white and dark)
@@ -31,8 +31,8 @@ convert -background none "${SRC_DIR}/logo-main.svg" -resize 512x512 -fill "#2D2E
 # 2. Logo2 / Dock Icon (alien-launcher)
 cp "${SRC_DIR}/logo-bar.svg" "${OUT_DIR}/icons/alien-launcher.svg"
 for size in 16 22 24 32 48 64 128 256 512; do
-    mkdir -p "${OUT_DIR}/icons/hicolor/${size}x${size}/apps"
-    convert -background none "${SRC_DIR}/logo-bar.svg" -resize ${size}x${size} "${OUT_DIR}/icons/hicolor/${size}x${size}/apps/alien-launcher.png"
+	mkdir -p "${OUT_DIR}/icons/hicolor/${size}x${size}/apps"
+	convert -background none "${SRC_DIR}/logo-bar.svg" -resize ${size}x${size} "${OUT_DIR}/icons/hicolor/${size}x${size}/apps/alien-launcher.png"
 done
 
 # 3. Backgrounds
@@ -41,8 +41,8 @@ cp "${SRC_DIR}/bg/bg2.png" "${OUT_DIR}/backgrounds/bg2-master.png"
 
 # Resizes and crops for backgrounds
 for res in "1920x1080" "2560x1440" "3840x2160"; do
-    convert "${SRC_DIR}/bg/bg1.svg" -resize ${res}^ -gravity center -extent ${res} "${OUT_DIR}/backgrounds/bg1-${res}.png"
-    convert "${SRC_DIR}/bg/bg2.png" -resize ${res}^ -gravity center -extent ${res} "${OUT_DIR}/backgrounds/bg2-${res}.png"
+	convert "${SRC_DIR}/bg/bg1.svg" -resize ${res}^ -gravity center -extent ${res} "${OUT_DIR}/backgrounds/bg1-${res}.png"
+	convert "${SRC_DIR}/bg/bg2.png" -resize ${res}^ -gravity center -extent ${res} "${OUT_DIR}/backgrounds/bg2-${res}.png"
 done
 
 # 4:3 and 16:10 crops
@@ -63,12 +63,11 @@ convert -background none "${SRC_DIR}/logo-main.svg" -resize 256x256 "${OUT_DIR}/
 convert -background none "${SRC_DIR}/logo-main.svg" -resize 32x32 "${OUT_DIR}/web/favicon.ico"
 cp "${SRC_DIR}/logo-main.svg" "${OUT_DIR}/web/mark.svg"
 
-
 # 7. Alien Icon Theme Overrides
 ALIEN_ICON_DIR="${OUT_DIR}/icons/Alien"
 mkdir -p "${ALIEN_ICON_DIR}"
 
-cat > "${ALIEN_ICON_DIR}/index.theme" <<'EOF'
+cat >"${ALIEN_ICON_DIR}/index.theme" <<'EOF'
 [Icon Theme]
 Name=Alien
 Comment=Alien OS Icon Theme - Overrides LXQt feather with Alien dock identity
@@ -132,30 +131,70 @@ EOF
 
 # Copy logo2 (alien-launcher) into Alien icon theme under all feather and start-here names
 for s in 16 22 24 32 48 64 128 256 512; do
-    TDIR="${ALIEN_ICON_DIR}/${s}x${s}/apps"
-    mkdir -p "$TDIR"
-    SRC_ICON="${OUT_DIR}/icons/hicolor/${s}x${s}/apps/alien-launcher.png"
-    if [ -f "$SRC_ICON" ]; then
-        for name in alien-launcher lxqt lxqt-about desktop-environment-lxqt start-here start-here-lxqt distributor-logo distributor-logo-debian install-debian calamares; do
-            cp "$SRC_ICON" "${TDIR}/${name}.png"
-        done
-    fi
+	TDIR="${ALIEN_ICON_DIR}/${s}x${s}/apps"
+	mkdir -p "$TDIR"
+	SRC_ICON="${OUT_DIR}/icons/hicolor/${s}x${s}/apps/alien-launcher.png"
+	if [ -f "$SRC_ICON" ]; then
+		for name in alien-launcher lxqt lxqt-about desktop-environment-lxqt start-here start-here-lxqt distributor-logo distributor-logo-debian install-debian calamares; do
+			cp "$SRC_ICON" "${TDIR}/${name}.png"
+		done
+	fi
 done
 
 # Scalable SVGs
 mkdir -p "${ALIEN_ICON_DIR}/scalable/apps" "${ALIEN_ICON_DIR}/scalable/places" "${ALIEN_ICON_DIR}/scalable/panel"
 for name in alien-launcher lxqt lxqt-about desktop-environment-lxqt start-here start-here-lxqt distributor-logo distributor-logo-debian install-debian calamares; do
-    cp "${OUT_DIR}/icons/alien-launcher.svg" "${ALIEN_ICON_DIR}/scalable/apps/${name}.svg"
-    cp "${OUT_DIR}/icons/alien-launcher.svg" "${ALIEN_ICON_DIR}/scalable/places/${name}.svg" 2>/dev/null || true
-    cp "${OUT_DIR}/icons/alien-launcher.svg" "${ALIEN_ICON_DIR}/scalable/panel/${name}.svg" 2>/dev/null || true
+	cp "${OUT_DIR}/icons/alien-launcher.svg" "${ALIEN_ICON_DIR}/scalable/apps/${name}.svg"
+	cp "${OUT_DIR}/icons/alien-launcher.svg" "${ALIEN_ICON_DIR}/scalable/places/${name}.svg" 2>/dev/null || true
+	cp "${OUT_DIR}/icons/alien-launcher.svg" "${ALIEN_ICON_DIR}/scalable/panel/${name}.svg" 2>/dev/null || true
 done
+
+# 8. Terminal Banner Art
+echo "Generating terminal banner art..."
+BANNER_DIR="${OUT_DIR}/banner"
+mkdir -p "${BANNER_DIR}"
+
+# 8.1 Base PNGs (logo-pixel and head-pixel)
+convert -background none "${SRC_DIR}/logo-main.svg" -resize 1024x1024 -trim +repage "${BANNER_DIR}/logo-pixel.png"
+convert "${BANNER_DIR}/logo-pixel.png" -gravity North -crop 100x64%+0+0 -trim +repage "${BANNER_DIR}/head-pixel.png"
+
+# 8.2 Sticker panels and transparent variants
+convert "${BANNER_DIR}/logo-pixel.png" -bordercolor white -border 24 -background white -flatten "${BANNER_DIR}/logo-sticker.png"
+convert "${BANNER_DIR}/head-pixel.png" -bordercolor white -border 16 -background white -flatten "${BANNER_DIR}/head-sticker.png"
+cp "${BANNER_DIR}/logo-pixel.png" "${BANNER_DIR}/logo-transparent.png"
+cp "${BANNER_DIR}/head-pixel.png" "${BANNER_DIR}/head-transparent.png"
+
+# 8.3 ANSI art generation (using chafa)
+if command -v chafa &>/dev/null; then
+	# Full logo (truecolor, 256-color)
+	chafa --size 44x22 -c full --symbols block,border,space --dither none "${BANNER_DIR}/logo-sticker.png" >"${BANNER_DIR}/logo-full-sticker.ans"
+	chafa --size 44x22 -c full --symbols block,border,space --dither none "${BANNER_DIR}/logo-transparent.png" >"${BANNER_DIR}/logo-full-transparent.ans"
+	cp "${BANNER_DIR}/logo-full-sticker.ans" "${BANNER_DIR}/logo-full.ans"
+
+	chafa --size 44x22 -c 256 --symbols block,border,space --dither none "${BANNER_DIR}/logo-sticker.png" >"${BANNER_DIR}/logo-full-256-sticker.ans"
+	chafa --size 44x22 -c 256 --symbols block,border,space --dither none "${BANNER_DIR}/logo-transparent.png" >"${BANNER_DIR}/logo-full-256-transparent.ans"
+	cp "${BANNER_DIR}/logo-full-256-sticker.ans" "${BANNER_DIR}/logo-full-256.ans"
+
+	# Compact head logo (truecolor, transparent, sticker)
+	chafa --size 24x12 -c full --symbols block,border,space --dither none "${BANNER_DIR}/head-sticker.png" >"${BANNER_DIR}/logo-compact-sticker.ans"
+	chafa --size 24x12 -c full --symbols block,border,space --dither none "${BANNER_DIR}/head-transparent.png" >"${BANNER_DIR}/logo-compact-transparent.ans"
+	cp "${BANNER_DIR}/logo-compact-sticker.ans" "${BANNER_DIR}/logo-compact.ans"
+
+	# 16-color for Linux console
+	chafa --size 24x12 -c 16 --symbols block,border,space --dither none "${BANNER_DIR}/head-transparent.png" >"${BANNER_DIR}/logo-16.ans"
+
+	# Sixel version
+	chafa --format=sixels --size 240x240 "${BANNER_DIR}/logo-sticker.png" >"${BANNER_DIR}/logo-pixel.six" 2>/dev/null || true
+else
+	echo "Notice: chafa not found on host, relying on container/pre-generated banner art."
+fi
 
 # Create a contact sheet for preview
 echo "Generating contact sheet..."
 montage -label '%f' "${OUT_DIR}/logos/logo-main-256.png" "${OUT_DIR}/logos/logo-main-white.png" "${OUT_DIR}/logos/logo-main-dark.png" \
-        "${OUT_DIR}/icons/hicolor/128x128/apps/alien-launcher.png" \
-        "${OUT_DIR}/backgrounds/bg1-1920x1080.png" "${OUT_DIR}/backgrounds/bg-login.png" \
-        -geometry 250x250+10+10 -background white -title "Alien OS Asset Contact Sheet" "${OUT_DIR}/contact_sheet.png"
+	"${OUT_DIR}/icons/hicolor/128x128/apps/alien-launcher.png" \
+	"${OUT_DIR}/backgrounds/bg1-1920x1080.png" "${OUT_DIR}/backgrounds/bg-login.png" \
+	-geometry 250x250+10+10 -background white -title "Alien OS Asset Contact Sheet" "${OUT_DIR}/contact_sheet.png"
 
 cp "${OUT_DIR}/contact_sheet.png" "$(dirname "${BASH_SOURCE[0]}")/../docs/branding-screenshots/contact_sheet.png"
 

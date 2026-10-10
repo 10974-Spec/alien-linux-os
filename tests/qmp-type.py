@@ -78,7 +78,10 @@ try:
                     send_qcode("bracket_right")
                 elif ch == '&':
                     send_combo("shift", "7")
+                elif ch == '$':
+                    send_combo("shift", "4")
                 elif ch == '|':
+
                     send_combo("shift", "backslash")
                 elif ch.isupper():
                     send_combo("shift", ch.lower())
