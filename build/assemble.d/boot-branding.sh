@@ -62,17 +62,125 @@ EOF
 chmod +x "$WORK/config/hooks/normal/0050-plymouth-update.hook.chroot"
 
 
-# 2. Boot Menu (binary)
-# We place the background images into includes.binary so they get packaged,
-# and use a binary hook to edit the grub/syslinux configs after live-build generates them.
+# 2. Graphical GRUB Theme & Boot Menu Architecture (Binary and Chroot)
+DEST_GRUB_BIN="$WORK/config/includes.binary/boot/grub"
+DEST_GRUB_CHROOT="$WORK/config/includes.chroot/boot/grub"
+DEST_THEME_BIN="$DEST_GRUB_BIN/themes/alien"
+DEST_THEME_CHROOT="$DEST_GRUB_CHROOT/themes/alien"
 
-mkdir -p "$WORK/config/includes.binary/isolinux"
-mkdir -p "$WORK/config/includes.binary/boot/grub"
+mkdir -p "$DEST_THEME_BIN" "$DEST_THEME_CHROOT"
 
-cp "$SRC/branding/generated/backgrounds/bg-bootmenu-1024x768.png" "$WORK/config/includes.binary/isolinux/splash.png"
-cp "$SRC/branding/generated/backgrounds/bg-bootmenu-1920x1080.png" "$WORK/config/includes.binary/boot/grub/splash.png"
+if [ -d "$SRC/branding/generated/grub" ]; then
+	cp -a "$SRC/branding/generated/grub/"* "$DEST_THEME_BIN/"
+	cp -a "$SRC/branding/generated/grub/"* "$DEST_THEME_CHROOT/"
+fi
 
-# Binary hook to patch menus
+# Installed system GRUB defaults (/etc/default/grub.d/50_alien.cfg)
+DEST_GRUB_CONF="$WORK/config/includes.chroot/etc/default/grub.d"
+mkdir -p "$DEST_GRUB_CONF"
+cat > "$DEST_GRUB_CONF/50_alien.cfg" <<'EOF'
+# Alien OS Architecture & GRUB Configuration
+GRUB_DEFAULT=saved
+GRUB_SAVEDEFAULT=false
+GRUB_TIMEOUT=5
+GRUB_TIMEOUT_STYLE=hidden
+GRUB_RECORDFAIL_TIMEOUT=5
+GRUB_THEME=/boot/grub/themes/alien/theme.txt
+GRUB_GFXMODE=auto
+GRUB_GFXPAYLOAD_LINUX=keep
+GRUB_DISABLE_OS_PROBER=false
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash panic=10"
+EOF
+
+# Unbrickable Boot Assessment: Attempt counter in GRUB
+DEST_GRUB_D="$WORK/config/includes.chroot/etc/grub.d"
+mkdir -p "$DEST_GRUB_D"
+
+cat > "$DEST_GRUB_D/01_alien_boot_counter" <<'EOF'
+#!/bin/sh
+# Alien OS — Boot assessment & automatic fallback counter
+exec tail -n +3 $0
+# Load grub environment from ESP or standard location
+if [ -s ($root)/EFI/alien/grubenv ]; then
+  load_env -f ($root)/EFI/alien/grubenv
+elif [ -s /boot/grub/grubenv ]; then
+  load_env
+fi
+
+# Initialize counter if not set
+if [ -z "${alien_boot_tries}" ]; then
+  set alien_boot_tries=3
+fi
+
+if [ "${alien_boot_success}" = "1" ]; then
+  set alien_boot_tries=3
+  set alien_boot_success=0
+  if [ -s ($root)/EFI/alien/grubenv ]; then
+    save_env -f ($root)/EFI/alien/grubenv alien_boot_tries alien_boot_success
+  elif [ "${root}" != "btrfs" ]; then
+    save_env alien_boot_tries alien_boot_success
+  fi
+else
+  # Decrement tries counter
+  if [ "${alien_boot_tries}" = "3" ]; then
+    set alien_boot_tries=2
+  elif [ "${alien_boot_tries}" = "2" ]; then
+    set alien_boot_tries=1
+  elif [ "${alien_boot_tries}" = "1" ]; then
+    set alien_boot_tries=0
+    # Fallback to recovery / previous kernel or snapshot
+    set default="Advanced options for Alien OS>1"
+    set timeout_style=menu
+    set timeout=10
+  fi
+  if [ -s ($root)/EFI/alien/grubenv ]; then
+    save_env -f ($root)/EFI/alien/grubenv alien_boot_tries
+  elif [ "${root}" != "btrfs" ]; then
+    save_env alien_boot_tries
+  fi
+fi
+EOF
+chmod +x "$DEST_GRUB_D/01_alien_boot_counter"
+
+# Systemd service to mark boot as healthy once desktop session is ready
+DEST_SYSTEMD="$WORK/config/includes.chroot/etc/systemd/system"
+mkdir -p "$DEST_SYSTEMD"
+cat > "$DEST_SYSTEMD/alien-boot-good.service" <<'EOF'
+[Unit]
+Description=Alien OS Mark Boot Healthy
+After=graphical.target systemd-user-sessions.service
+Wants=graphical.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/alien-boot-mark-good
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+DEST_BIN="$WORK/config/includes.chroot/usr/bin"
+mkdir -p "$DEST_BIN"
+cat > "$DEST_BIN/alien-boot-mark-good" <<'EOF'
+#!/bin/sh
+set -eu
+# Check basic health: display manager active
+if systemctl is-active --quiet display-manager.service || systemctl is-active --quiet lightdm.service || systemctl is-active --quiet sddm.service; then
+  if [ -d /boot/efi/EFI/alien ]; then
+    mkdir -p /boot/efi/EFI/alien
+    grub-editenv /boot/efi/EFI/alien/grubenv set alien_boot_tries=3 alien_boot_success=1 2>/dev/null || true
+  elif [ -f /boot/grub/grubenv ]; then
+    grub-editenv /boot/grub/grubenv set alien_boot_tries=3 alien_boot_success=1 2>/dev/null || true
+  fi
+fi
+EOF
+chmod +x "$DEST_BIN/alien-boot-mark-good"
+
+mkdir -p "$DEST_SYSTEMD/graphical.target.wants"
+ln -sf /etc/systemd/system/alien-boot-good.service "$DEST_SYSTEMD/graphical.target.wants/alien-boot-good.service"
+
+# Binary hook to install unified Live ISO GRUB menu (BIOS & UEFI)
 cat > "$WORK/config/hooks/normal/9900-boot-menu-branding.hook.binary" <<'EOF'
 #!/bin/sh
 set -e
@@ -80,50 +188,87 @@ set -e
 EDITION_CAP="$(echo "$ALIEN_EDITION" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 OS_TITLE="@ALIEN_NAME@ $EDITION_CAP"
 
-# Patch ISOLINUX (syslinux)
+mkdir -p binary/boot/grub/themes/alien
+if [ -d binary/boot/grub/themes/alien ]; then
+  cp -a /alien/branding/generated/grub/* binary/boot/grub/themes/alien/ 2>/dev/null || true
+fi
+
+# Generate unified GRUB configuration for Live ISO
+cat > binary/boot/grub/grub.cfg <<GRUB_EOF
+set default=0
+set timeout=5
+set timeout_style=menu
+
+# Enable high-resolution graphics
+set gfxmode=auto
+insmod all_video
+insmod gfxterm
+insmod png
+terminal_output gfxterm
+
+# Load graphical theme
+loadfont /boot/grub/themes/alien/dejavu-14.pf2
+loadfont /boot/grub/themes/alien/dejavu-bold-14.pf2
+set theme=/boot/grub/themes/alien/theme.txt
+
+menuentry "$OS_TITLE Live" --class alien --class gnu-linux --class os {
+    linux /live/vmlinuz boot=live components quiet splash locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    initrd /live/initrd.img
+}
+
+menuentry "$OS_TITLE Live (Copy to RAM)" --class alien --class ram --class os {
+    linux /live/vmlinuz boot=live components quiet splash alien.toram=auto locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    initrd /live/initrd.img
+}
+
+menuentry "$OS_TITLE Live (Persistence)" --class alien --class disk --class os {
+    linux /live/vmlinuz boot=live components quiet splash persistence locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    initrd /live/initrd.img
+}
+
+menuentry "Install $OS_TITLE" --class calamares --class install --class os {
+    linux /live/vmlinuz boot=live components quiet splash alien.autoinstall=1 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    initrd /live/initrd.img
+}
+
+menuentry "$OS_TITLE (Safe Graphics / nomodeset)" --class recovery --class safe --class os {
+    linux /live/vmlinuz boot=live components nomodeset locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    initrd /live/initrd.img
+}
+
+submenu "Tools & Diagnostics" --class tools {
+    menuentry "Memory Diagnostic (memtest86+)" --class memtest {
+        linux16 /live/memtest86+.bin 2>/dev/null || linux /live/memtest86+ 2>/dev/null || chainloader /boot/memtest.efi
+    }
+    menuentry "UEFI Firmware Settings" --class uefi-firmware {
+        fwsetup
+    }
+    menuentry "Reboot System" --class reboot {
+        reboot
+    }
+    menuentry "Power Off" --class shutdown {
+        halt
+    }
+}
+GRUB_EOF
+
+# Keep isolinux fallback for legacy BIOS media if present
 if [ -d binary/isolinux ]; then
-    # Menu colors
     cat > binary/isolinux/menu.cfg <<MENU_EOF
 menu hshift 0
 menu width 82
-menu title Boot Menu
+menu title Alien OS Boot Menu
 menu background splash.png
 menu color title    * #ffffffff *
 menu color border   * #00000000 #00000000 none
 menu color sel      * #ffffffff @ALIEN_ACCENT@ *
 menu color unsel    * #ffffffff #00000000 none
-menu color timeout_msg * #ffffffff #00000000 none
 menu color timeout  * #ffffffff #00000000 none
 MENU_EOF
-    # Append actual entries
     grep -v "menu background" binary/isolinux/live.cfg >> binary/isolinux/menu.cfg || true
-
-    # Replace labels
-    sed -i "s|Live system|$OS_TITLE|g" binary/isolinux/menu.cfg binary/isolinux/live.cfg binary/isolinux/install.cfg 2>/dev/null || true
-    sed -i "s|Live ($OS_TITLE)|$OS_TITLE Live|g" binary/isolinux/*.cfg 2>/dev/null || true
-fi
-
-# Patch GRUB
-if [ -f binary/boot/grub/grub.cfg ]; then
-    # Insert theme settings before menuentries
-    sed -i '/menuentry /,$!d' binary/boot/grub/grub.cfg
-
-    cat > binary/boot/grub/grub.cfg.new <<GRUB_EOF
-set default=0
-set timeout=5
-source /boot/grub/theme.cfg
-background_image /boot/grub/splash.png
-set color_normal=white/black
-set color_highlight=white/blue
-GRUB_EOF
-    cat binary/boot/grub/grub.cfg >> binary/boot/grub/grub.cfg.new
-    mv binary/boot/grub/grub.cfg.new binary/boot/grub/grub.cfg
-
-    # Replace labels
-    sed -i "s|Live system|$OS_TITLE|g" binary/boot/grub/grub.cfg 2>/dev/null || true
-    sed -i "s|Live ($OS_TITLE)|$OS_TITLE Live|g" binary/boot/grub/grub.cfg 2>/dev/null || true
 fi
 EOF
 chmod +x "$WORK/config/hooks/normal/9900-boot-menu-branding.hook.binary"
 
-echo "  - Configured Plymouth theme 'alien' and Boot Menu branding"
+echo "  - Configured Plymouth theme 'alien' and unified GRUB Boot Architecture"
+

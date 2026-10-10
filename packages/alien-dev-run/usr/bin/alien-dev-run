@@ -1,0 +1,16 @@
+#!/bin/sh
+# Alien OS — Run process in protected dev.slice (alien-dev-run)
+# Protects the interactive desktop session from runaway compilations or memory exhaustion.
+set -eu
+
+if [ $# -eq 0 ]; then
+	echo "Usage: alien-dev-run <COMMAND> [ARGS...]"
+	echo "Runs the command inside the dev.slice cgroup to preserve desktop responsiveness."
+	exit 1
+fi
+
+if command -v systemd-run >/dev/null 2>&1; then
+	exec systemd-run --user --scope --slice=dev.slice "$@"
+else
+	exec nice -n 10 "$@"
+fi

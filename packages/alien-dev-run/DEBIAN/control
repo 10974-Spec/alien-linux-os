@@ -1,0 +1,9 @@
+Package: alien-dev-run
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: systemd
+Description: Alien OS bounded dev job runner in dev.slice
+ This package is part of the Alien OS core architecture.

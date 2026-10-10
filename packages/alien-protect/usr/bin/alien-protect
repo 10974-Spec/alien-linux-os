@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Alien OS — Protected System Mode (alien-protect)
+# Mounts /usr read-only with atomic rw transaction remounts for apt/dpkg.
+set -euo pipefail
+
+APT_HOOK="/etc/apt/apt.conf.d/90-alien-protect"
+
+status() {
+	echo "=== Alien OS Protected Mode Status ==="
+	if mount | grep -E ' on /usr (type| )' | grep -q 'ro[ ,]'; then
+		echo "Protected Mode: ACTIVE (/usr is mounted read-only)"
+	else
+		echo "Protected Mode: INACTIVE (/usr is mounted read-write)"
+	fi
+	if [ -f "$APT_HOOK" ]; then
+		echo "APT Remount Hook: INSTALLED ($APT_HOOK)"
+	else
+		echo "APT Remount Hook: NOT INSTALLED"
+	fi
+}
+
+enable_protection() {
+	echo "Enabling Protected Mode..."
+	# Ensure /usr/local is writable via dedicated bind mount or check
+	if ! mountpoint -q /usr/local 2>/dev/null; then
+		mkdir -p /var/local-usr
+		if [ -d /usr/local ]; then
+			cp -a /usr/local/* /var/local-usr/ 2>/dev/null || true
+		fi
+		mount --bind /var/local-usr /usr/local 2>/dev/null || true
+	fi
+
+	# Install apt remount hooks
+	cat > "$APT_HOOK" <<'EOF'
+// Remount /usr rw before transaction, restore ro after
+DPkg::Pre-Invoke  { "mount -o remount,rw /usr 2>/dev/null || true"; };
+DPkg::Post-Invoke { "mount -o remount,ro /usr 2>/dev/null || true"; };
+EOF
+
+	# Remount /usr read-only
+	mount -o remount,ro /usr 2>/dev/null || echo "Notice: Remounting /usr ro will take effect on next boot."
+	echo "Protected Mode enabled successfully."
+}
+
+disable_protection() {
+	echo "Disabling Protected Mode..."
+	rm -f "$APT_HOOK"
+	mount -o remount,rw /usr 2>/dev/null || true
+	echo "Protected Mode disabled."
+}
+
+case "${1:-status}" in
+	on|enable) enable_protection ;;
+	off|disable) disable_protection ;;
+	status) status ;;
+	*)
+		echo "Usage: alien-protect {on|off|status}"
+		exit 1
+		;;
+esac

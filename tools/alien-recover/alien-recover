@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Alien OS — Graphical Snapshot Recovery Tool (alien-recover)
+# Provides 1-click snapshot restore with human-friendly descriptions.
+set -euo pipefail
+
+TITLE="Alien System Recovery"
+
+check_snapper() {
+	if ! command -v snapper >/dev/null 2>&1 || [ ! -d "/.snapshots" ]; then
+		if [ -n "${DISPLAY:-}" ] && command -v zenity >/dev/null 2>&1; then
+			zenity --error --title="$TITLE" --text="No Btrfs snapshot configuration found on this system.\n\nSnapshots require Alien OS installed on a Btrfs filesystem."
+		else
+			echo "Error: No Btrfs snapshots found on this system." >&2
+		fi
+		exit 1
+	fi
+}
+
+check_snapper
+
+# Gather snapshots from snapper
+mapfile -t SNAP_LIST < <(snapper -c root list --columns number,date,description 2>/dev/null | tail -n +3 | tr -s ' ' | sed 's/^ //' || true)
+
+if [ "${#SNAP_LIST[@]}" -eq 0 ]; then
+	if [ -n "${DISPLAY:-}" ] && command -v zenity >/dev/null 2>&1; then
+		zenity --info --title="$TITLE" --text="No system snapshots currently available."
+	else
+		echo "No snapshots found."
+	fi
+	exit 0
+fi
+
+# GUI mode with zenity
+if [ -n "${DISPLAY:-}" ] && command -v zenity >/dev/null 2>&1; then
+	ZEN_ITEMS=()
+	for line in "${SNAP_LIST[@]}"; do
+		num="$(echo "$line" | cut -d' ' -f1)"
+		date="$(echo "$line" | cut -d' ' -f2,3)"
+		desc="$(echo "$line" | cut -d' ' -f4-)"
+		ZEN_ITEMS+=("$num" "$date" "$desc")
+	done
+
+	SELECTED=$(zenity --list --title="$TITLE" \
+		--text="Select a snapshot to restore the system state:\nRestoring will rollback the root subvolume to the selected version." \
+		--column="ID" --column="Date & Time" --column="Description" \
+		--width=700 --height=400 \
+		"${ZEN_ITEMS[@]}" || true)
+
+	if [ -n "$SELECTED" ]; then
+		if zenity --question --title="$TITLE" \
+			--text="Are you sure you want to restore Snapshot #$SELECTED?\n\nA backup of the current state will be created, and you will need to reboot."; then
+			pkexec snapper -c root rollback "$SELECTED"
+			zenity --info --title="$TITLE" \
+				--text="Snapshot #$SELECTED has been restored!\n\nPlease restart your computer to boot into the restored system."
+		fi
+	fi
+	exit 0
+fi
+
+# Text mode fallback
+echo "=== $TITLE ==="
+echo "ID | Date & Time | Description"
+echo "-----------------------------------"
+for line in "${SNAP_LIST[@]}"; do
+	echo "$line"
+done
+echo "-----------------------------------"
+read -rp "Enter snapshot ID to restore (or Enter to cancel): " choice
+if [ -n "$choice" ]; then
+	alien-snapshot rollback "$choice"
+fi

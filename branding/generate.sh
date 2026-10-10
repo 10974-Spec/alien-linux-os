@@ -189,6 +189,118 @@ else
 	echo "Notice: chafa not found on host, relying on container/pre-generated banner art."
 fi
 
+# 9. GRUB Graphical Theme
+echo "Generating GRUB theme assets..."
+GRUB_DIR="${OUT_DIR}/grub"
+mkdir -p "${GRUB_DIR}/icons"
+
+# Background (1920x1080 darkened)
+if [ -f "${OUT_DIR}/backgrounds/bg1-1920x1080.png" ]; then
+	convert "${OUT_DIR}/backgrounds/bg1-1920x1080.png" \
+		-modulate 60,70,100 \
+		-fill "#050814" -colorize 40% \
+		"${GRUB_DIR}/background.png"
+fi
+
+# Selection bar pixmaps
+convert -size 400x36 xc:"#2a324b" -bordercolor "#4F8EF7" -border 1 "${GRUB_DIR}/select_c.png"
+
+# Progress bar
+convert -size 400x14 xc:"#161925" -bordercolor "#3d4455" -border 1 "${GRUB_DIR}/progress_frame_c.png"
+convert -size 400x14 xc:"#4F8EF7" "${GRUB_DIR}/progress_hl_c.png"
+
+# Fonts
+if command -v grub-mkfont >/dev/null 2>&1; then
+	for font in /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf /usr/share/fonts/dejavu/DejaVuSans.ttf; do
+		if [ -f "$font" ]; then
+			grub-mkfont -s 12 -o "${GRUB_DIR}/dejavu-12.pf2" "$font" 2>/dev/null || true
+			grub-mkfont -s 14 -o "${GRUB_DIR}/dejavu-14.pf2" "$font" 2>/dev/null || true
+			break
+		fi
+	done
+	for font_bold in /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf /usr/share/fonts/dejavu/DejaVuSans-Bold.ttf; do
+		if [ -f "$font_bold" ]; then
+			grub-mkfont -s 14 -o "${GRUB_DIR}/dejavu-bold-14.pf2" "$font_bold" 2>/dev/null || true
+			break
+		fi
+	done
+fi
+
+# Icons
+if [ -f "${BANNER_DIR}/head-sticker.png" ]; then
+	convert "${BANNER_DIR}/head-sticker.png" -resize 32x32 -gravity center -extent 32x32 "${GRUB_DIR}/icons/alien.png"
+	cp "${GRUB_DIR}/icons/alien.png" "${GRUB_DIR}/icons/gnu-linux.png"
+	cp "${GRUB_DIR}/icons/alien.png" "${GRUB_DIR}/icons/linux.png"
+fi
+
+convert -size 32x32 xc:none -fill "#4F8EF7" -draw "circle 16,16 16,3" -fill "#050814" -draw "circle 16,16 16,6" -stroke "#4F8EF7" -strokewidth 2 -draw "line 16,8 16,16 line 16,16 22,16" "${GRUB_DIR}/icons/snapshots.png"
+cp "${GRUB_DIR}/icons/snapshots.png" "${GRUB_DIR}/icons/snapshot.png"
+
+convert -size 32x32 xc:none -stroke "#2ECC71" -strokewidth 2 -fill none -draw "rectangle 4,8 28,24" -fill "#2ECC71" -draw "rectangle 7,12 11,20 rectangle 14,12 18,20 rectangle 21,12 25,20" "${GRUB_DIR}/icons/memtest.png"
+cp "${GRUB_DIR}/icons/memtest.png" "${GRUB_DIR}/icons/memtest86+.png"
+
+convert -size 32x32 xc:none -stroke "#F1C40F" -strokewidth 2 -fill none -draw "circle 16,16 16,7" -fill "#F1C40F" -draw "circle 16,16 16,11" "${GRUB_DIR}/icons/firmware.png"
+cp "${GRUB_DIR}/icons/firmware.png" "${GRUB_DIR}/icons/uefi-firmware.png"
+
+convert -size 32x32 xc:none -stroke "#E74C3C" -strokewidth 2 -fill none -draw "circle 16,16 16,6" -stroke "#050814" -strokewidth 4 -draw "line 16,4 16,12" -stroke "#E74C3C" -strokewidth 2 -draw "line 16,4 16,12" "${GRUB_DIR}/icons/shutdown.png"
+cp "${GRUB_DIR}/icons/shutdown.png" "${GRUB_DIR}/icons/halt.png"
+
+convert -size 32x32 xc:none -stroke "#4F8EF7" -strokewidth 2 -fill none -draw "circle 16,16 16,7" -fill "#4F8EF7" -draw "polygon 16,4 22,7 16,10" "${GRUB_DIR}/icons/reboot.png"
+
+convert -size 32x32 xc:none -stroke "#F1C40F" -strokewidth 2 -fill none -draw "polygon 16,4 4,28 28,28" -fill "#F1C40F" -draw "line 16,12 16,20 point 16,24" "${GRUB_DIR}/icons/recovery.png"
+cp "${GRUB_DIR}/icons/recovery.png" "${GRUB_DIR}/icons/safe.png"
+
+convert -size 32x32 xc:none -stroke "#CDD6F4" -strokewidth 2 -fill none -draw "line 6,26 26,6 circle 22,10 22,6" "${GRUB_DIR}/icons/tools.png"
+
+# theme.txt
+cat > "${GRUB_DIR}/theme.txt" <<'EOF'
+# Alien OS GRUB Theme
+title-text: ""
+desktop-image: "background.png"
+desktop-color: "#050814"
+terminal-font: "DejaVu Sans Regular 14"
+
++ boot_menu {
+  left = 20%
+  top = 28%
+  width = 60%
+  height = 50%
+  item_font = "DejaVu Sans Regular 14"
+  item_color = "#cdd6f4"
+  selected_item_font = "DejaVu Sans Bold 14"
+  selected_item_color = "#ffffff"
+  selected_item_pixmap_style = "select_c.png"
+  icon_width = 32
+  icon_height = 32
+  item_height = 38
+  item_padding = 6
+  item_spacing = 8
+}
+
++ progress_bar {
+  id = "__timeout__"
+  left = 20%
+  top = 82%
+  width = 60%
+  height = 14
+  font = "DejaVu Sans Regular 12"
+  text_color = "#a6adc8"
+  bar_style = "progress_frame_c.png"
+  highlight_style = "progress_hl_c.png"
+}
+
++ label {
+  top = 88%
+  left = 20%
+  width = 60%
+  height = 20
+  text = "Use arrow keys to select, Enter to boot, 'e' to edit, 'c' for CLI."
+  font = "DejaVu Sans Regular 12"
+  color = "#6c7086"
+  align = "center"
+}
+EOF
+
 # Create a contact sheet for preview
 echo "Generating contact sheet..."
 montage -label '%f' "${OUT_DIR}/logos/logo-main-256.png" "${OUT_DIR}/logos/logo-main-white.png" "${OUT_DIR}/logos/logo-main-dark.png" \
@@ -199,3 +311,4 @@ montage -label '%f' "${OUT_DIR}/logos/logo-main-256.png" "${OUT_DIR}/logos/logo-
 cp "${OUT_DIR}/contact_sheet.png" "$(dirname "${BASH_SOURCE[0]}")/../docs/branding-screenshots/contact_sheet.png"
 
 echo "Generation complete."
+

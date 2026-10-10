@@ -1,0 +1,9 @@
+Package: alien-doctor
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: coreutils, procps
+Description: Alien OS system health and hardware diagnostics tool
+ This package is part of the Alien OS core architecture.

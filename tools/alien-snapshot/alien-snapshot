@@ -1,0 +1,131 @@
+#!/bin/sh
+# Alien OS — Snapshot Management Tool (alien-snapshot)
+# Safe CLI interface to Btrfs and Snapper snapshots
+set -eu
+
+DRY_RUN=0
+
+usage() {
+	cat <<EOF
+Usage: alien-snapshot [OPTIONS] <COMMAND> [ARGS]
+
+Commands:
+  list                 List all system snapshots with descriptions and timestamps
+  create [DESCRIPTION] Create a new root snapshot (default desc: 'Manual snapshot')
+  delete <ID>          Delete a specific snapshot
+  rollback <ID>        Restore the root system to a previous snapshot
+  status               Show Btrfs layout and snapshot storage usage
+
+Options:
+  -n, --dry-run        Simulate action without making changes
+  -h, --help           Show this help message
+EOF
+	exit 0
+}
+
+check_btrfs() {
+	if ! command -v snapper >/dev/null 2>&1 && ! command -v btrfs >/dev/null 2>&1; then
+		if [ "$DRY_RUN" -eq 1 ]; then
+			echo "Notice [DRY-RUN]: Neither snapper nor btrfs installed."
+			return 0
+		fi
+		echo "Error: Snapper or btrfs-progs is not installed." >&2
+		exit 1
+	fi
+	if [ ! -d "/.snapshots" ]; then
+		echo "Notice: /.snapshots directory not found. System may not be running on a Btrfs snapshot layout." >&2
+	fi
+}
+
+cmd_list() {
+	check_btrfs
+	echo "=== Alien OS Snapshots ==="
+	if command -v snapper >/dev/null 2>&1; then
+		snapper -c root list || true
+	else
+		echo "No snapper service found; checking /.snapshots:"
+		ls -la /.snapshots 2>/dev/null || echo "None found."
+	fi
+}
+
+cmd_create() {
+	check_btrfs
+	desc="${1:-Manual snapshot}"
+	if [ "$DRY_RUN" -eq 1 ]; then
+		echo "[DRY-RUN] Would create snapshot with description: '$desc'"
+		return 0
+	fi
+	echo "Creating snapshot: '$desc'..."
+	if command -v snapper >/dev/null 2>&1; then
+		snapper -c root create -d "$desc"
+		echo "Snapshot created successfully."
+		if [ -x /etc/grub.d/41_snapshots-btrfs ] && command -v update-grub >/dev/null 2>&1; then
+			update-grub 2>/dev/null || true
+		fi
+	else
+		echo "Error: snapper command not available." >&2
+		exit 1
+	fi
+}
+
+cmd_delete() {
+	check_btrfs
+	id="${1:-}"
+	if [ -z "$id" ]; then
+		echo "Error: Specify snapshot ID to delete." >&2
+		exit 1
+	fi
+	if [ "$DRY_RUN" -eq 1 ]; then
+		echo "[DRY-RUN] Would delete snapshot ID: $id"
+		return 0
+	fi
+	echo "Deleting snapshot ID: $id..."
+	snapper -c root delete "$id"
+	echo "Snapshot $id deleted."
+	if [ -x /etc/grub.d/41_snapshots-btrfs ] && command -v update-grub >/dev/null 2>&1; then
+		update-grub 2>/dev/null || true
+	fi
+}
+
+cmd_rollback() {
+	check_btrfs
+	id="${1:-}"
+	if [ -z "$id" ]; then
+		echo "Error: Specify snapshot ID to rollback to." >&2
+		exit 1
+	fi
+	if [ "$DRY_RUN" -eq 1 ]; then
+		echo "[DRY-RUN] Would rollback root subvolume to snapshot ID: $id"
+		return 0
+	fi
+	echo "Rolling back to snapshot $id..."
+	snapper -c root rollback "$id"
+	echo "Rollback configured. Please reboot to activate the restored snapshot."
+}
+
+cmd_status() {
+	check_btrfs
+	echo "=== Alien OS Storage & Snapshot Status ==="
+	if command -v btrfs >/dev/null 2>&1; then
+		btrfs filesystem usage / 2>/dev/null || df -h /
+	else
+		df -h /
+	fi
+}
+
+# Parse options
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-n|--dry-run) DRY_RUN=1 ;;
+		-h|--help) usage ;;
+		list) cmd_list; exit 0 ;;
+		create) shift; cmd_create "${1:-}"; exit 0 ;;
+		delete) shift; cmd_delete "${1:-}"; exit 0 ;;
+		rollback) shift; cmd_rollback "${1:-}"; exit 0 ;;
+		status) cmd_status; exit 0 ;;
+		*) echo "Unknown command or option: $1"; usage ;;
+	esac
+	shift
+done
+
+usage

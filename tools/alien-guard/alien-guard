@@ -1,0 +1,85 @@
+#!/bin/sh
+# Alien OS — Terminal Safety Seat Belt (alien-guard)
+# Intercepts catastrophic accidental commands in interactive shells.
+# Note: This is an accidental safety guard, NOT a security boundary.
+
+if [ -n "${ALIEN_NO_GUARD:-}" ] || [ -f "${HOME:-/root}/.config/alien/no-guard" ]; then
+	# shellcheck disable=SC2317
+	return 0 2>/dev/null || exit 0
+fi
+
+# Guard for rm
+rm() {
+	is_dangerous=0
+	reason=""
+	for arg in "$@"; do
+		case "$arg" in
+			/|/*)
+				case "$arg" in
+					/|/bin|/sbin|/usr|/etc|/var|/home|/root|/boot)
+						is_dangerous=1
+						reason="Destruction of core system root directory ($arg)"
+						;;
+				esac
+				;;
+			"~"|"$HOME")
+				is_dangerous=1
+				reason="Destruction of entire user home directory ($arg)"
+				;;
+		esac
+	done
+
+	if [ "$is_dangerous" -eq 1 ]; then
+		case " $* " in
+			*" -rf "*|*" -fr "*|*" -r "*|*" -f "*)
+				printf "\033[1;31m[ALIEN GUARD WARNING]\033[0m Dangerous command detected!\n" >&2
+				printf "Reason: %s\n" "$reason" >&2
+				printf "Command: rm %s\n\n" "$*" >&2
+				printf "Type '\033[1;37mI understand\033[0m' to proceed: " >&2
+				read -r confirm
+				if [ "$confirm" != "I understand" ]; then
+					echo "Command aborted by Alien Guard." >&2
+					return 1
+				fi
+				;;
+		esac
+	fi
+	command rm "$@"
+}
+
+# Guard for dd writing to disks
+dd() {
+	has_raw_of=0
+	target_dev=""
+	for arg in "$@"; do
+		case "$arg" in
+			of=/dev/sd*|of=/dev/nvme*|of=/dev/vd*|of=/dev/hd*)
+				has_raw_of=1
+				target_dev="${arg#of=}"
+				;;
+		esac
+	done
+
+	if [ "$has_raw_of" -eq 1 ]; then
+		printf "\033[1;31m[ALIEN GUARD WARNING]\033[0m Raw disk overwrite detected!\n" >&2
+		printf "Target device: %s (This will overwrite all data and partition tables!)\n" "$target_dev" >&2
+		printf "Type '\033[1;37mOVERWRITE\033[0m' to proceed: " >&2
+		read -r confirm
+		if [ "$confirm" != "OVERWRITE" ]; then
+			echo "Command aborted by Alien Guard." >&2
+			return 1
+		fi
+	fi
+	command dd "$@"
+}
+
+# Guard for mkfs
+mkfs() {
+	printf "\033[1;33m[ALIEN GUARD NOTICE]\033[0m Format disk request: mkfs %s\n" "$*" >&2
+	printf "Proceed with filesystem creation? [y/N]: " >&2
+	read -r confirm
+	case "$confirm" in
+		y*|Y*) command mkfs "$@" ;;
+		*) echo "Aborted." >&2; return 1 ;;
+	esac
+}

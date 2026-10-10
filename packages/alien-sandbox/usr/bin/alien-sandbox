@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Alien OS — Ephemeral Developer Sandboxes (alien-sandbox)
+# Spawns isolated rootless containers without altering the host system.
+set -euo pipefail
+
+usage() {
+	cat <<EOF
+Usage: alien-sandbox <ENVIRONMENT> [COMMAND...]
+
+Available environments:
+  node20       Node.js 20 LTS environment
+  python312    Python 3.12 environment
+  rust         Rust / Cargo latest toolchain
+  go           Go latest toolchain
+  debian       Vanilla Debian trixie sandbox
+
+Options:
+  --home       Mount current user's \$HOME into container
+  -h, --help   Show this help message
+EOF
+	exit 0
+}
+
+MOUNT_HOME=0
+case "${1:-}" in
+	-h|--help|"") usage ;;
+	--home) MOUNT_HOME=1; shift ;;
+esac
+
+ENV_NAME="${1:-}"
+[ -z "$ENV_NAME" ] && usage
+shift || true
+
+# Pick container engine
+ENGINE=""
+if command -v podman >/dev/null 2>&1; then
+	ENGINE="podman"
+elif command -v docker >/dev/null 2>&1; then
+	ENGINE="docker"
+else
+	echo "Error: Neither podman nor docker found. Please install podman to use alien-sandbox." >&2
+	exit 1
+fi
+
+IMAGE=""
+case "$ENV_NAME" in
+	node20) IMAGE="docker.io/library/node:20-bookworm" ;;
+	python312) IMAGE="docker.io/library/python:3.12-bookworm" ;;
+	rust) IMAGE="docker.io/library/rust:bookworm" ;;
+	go) IMAGE="docker.io/library/golang:bookworm" ;;
+	debian) IMAGE="docker.io/library/debian:trixie" ;;
+	*) echo "Unknown sandbox environment: $ENV_NAME"; usage ;;
+esac
+
+ARGS=(run --rm -it)
+
+# Protect host by assigning to dev.slice if systemd cgroups v2 supported
+if [ "$ENGINE" = "podman" ]; then
+	ARGS+=(--cgroup-parent=dev.slice)
+fi
+
+# Volume mounts
+ARGS+=(-v "$PWD":/workspace -w /workspace)
+if [ "$MOUNT_HOME" -eq 1 ]; then
+	ARGS+=(-v "$HOME":"$HOME")
+fi
+
+echo "Launching ephemeral sandbox for '$ENV_NAME' ($IMAGE)..."
+if [ $# -gt 0 ]; then
+	exec "$ENGINE" "${ARGS[@]}" "$IMAGE" "$@"
+else
+	exec "$ENGINE" "${ARGS[@]}" "$IMAGE" bash
+fi

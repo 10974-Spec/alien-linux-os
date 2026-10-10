@@ -1,0 +1,9 @@
+Package: alien-audio-profile
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: coreutils
+Description: Alien OS PipeWire low-latency and battery audio tuner
+ This package is part of the Alien OS core architecture.

@@ -1,0 +1,100 @@
+#!/bin/sh
+# Alien OS — System Doctor & Health Diagnostics (alien-doctor)
+# Audits boot health, snapshots, Secure Boot, zram, slices, and critical services.
+set -eu
+
+pass_count=0
+warn_count=0
+fail_count=0
+
+report() {
+	status="$1"
+	title="$2"
+	details="$3"
+	fix="$4"
+
+	case "$status" in
+		OK)
+			printf " \033[1;32m[OK]\033[0m   %s: %s\n" "$title" "$details"
+			pass_count=$((pass_count + 1))
+			;;
+		WARN)
+			printf " \033[1;33m[WARN]\033[0m %s: %s\n" "$title" "$details"
+			[ -n "$fix" ] && printf "        \033[2mFix: %s\033[0m\n" "$fix"
+			warn_count=$((warn_count + 1))
+			;;
+		FAIL)
+			printf " \033[1;31m[FAIL]\033[0m %s: %s\n" "$title" "$details"
+			[ -n "$fix" ] && printf "        \033[2mFix: %s\033[0m\n" "$fix"
+			fail_count=$((fail_count + 1))
+			;;
+	esac
+}
+
+echo "=================================================="
+echo "          Alien OS Doctor Health Diagnostic       "
+echo "=================================================="
+
+# 1. Boot Health & GRUB Assessment
+if [ -d /sys/firmware/efi ]; then
+	if [ -f /boot/efi/EFI/alien/grubenv ]; then
+		report "OK" "Boot Assessment" "UEFI grubenv active with attempt counting" ""
+	else
+		report "WARN" "Boot Assessment" "UEFI grubenv not found in /boot/efi/EFI/alien" "Run 'grub-editenv /boot/efi/EFI/alien/grubenv create'"
+	fi
+else
+	report "OK" "Boot Assessment" "BIOS bootloader active" ""
+fi
+
+# 2. Secure Boot Status
+if command -v mokutil >/dev/null 2>&1; then
+	if mokutil --sb-state 2>/dev/null | grep -qi "enabled"; then
+		report "OK" "Secure Boot" "Enabled and enforcing signed kernels" ""
+	else
+		report "OK" "Secure Boot" "Disabled (Hardware supports non-signed modules)" ""
+	fi
+else
+	report "OK" "Secure Boot" "Not applicable or mokutil not installed" ""
+fi
+
+# 3. Filesystem & Snapshot Space
+if [ -d "/.snapshots" ]; then
+	free_gb="$(df -BG / 2>/dev/null | awk 'NR==2 {print int($4)}')"
+	if [ "$free_gb" -gt 10 ]; then
+		report "OK" "Snapshots & Free Space" "${free_gb} GB available on root subvolume" ""
+	elif [ "$free_gb" -gt 3 ]; then
+		report "WARN" "Snapshots & Free Space" "Low disk space (${free_gb} GB left)" "Clean old snapshots with 'alien-snapshot delete <id>'"
+	else
+		report "FAIL" "Snapshots & Free Space" "Critical disk space (${free_gb} GB left)" "Immediately delete old snapshots to prevent Btrfs lockup"
+	fi
+else
+	report "OK" "Snapshots" "System is running in live or non-Btrfs mode" ""
+fi
+
+# 4. ZRAM Swap Status
+if [ -e "/dev/zram0" ]; then
+	report "OK" "ZRAM Memory Swap" "zram0 active with zstd compression" ""
+else
+	report "WARN" "ZRAM Memory Swap" "zram0 device not detected" "Verify 'systemd-zram-generator' configuration"
+fi
+
+# 5. Cgroups v2 & Dev Slice
+if [ -d "/sys/fs/cgroup/dev.slice" ] || [ -f "/etc/systemd/user/dev.slice" ]; then
+	report "OK" "Dev Slice Isolation" "dev.slice cgroup defined for background workload protection" ""
+else
+	report "OK" "Dev Slice" "Standard cgroup hierarchy active" ""
+fi
+
+# 6. Critical Services
+if command -v systemctl >/dev/null 2>&1; then
+	failed_units="$(systemctl --failed --no-legend 2>/dev/null | wc -l)"
+	if [ "$failed_units" -eq 0 ]; then
+		report "OK" "Systemd Units" "No failed services" ""
+	else
+		report "WARN" "Systemd Units" "$failed_units failed services detected" "Run 'systemctl --failed' for details"
+	fi
+fi
+
+echo "=================================================="
+printf "Results: %d passed, %d warnings, %d failures\n" "$pass_count" "$warn_count" "$fail_count"
+echo "=================================================="

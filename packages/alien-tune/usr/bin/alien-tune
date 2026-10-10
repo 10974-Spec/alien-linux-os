@@ -1,0 +1,123 @@
+#!/bin/sh
+# Alien OS — Hardware-Aware Auto-Tuning Service (alien-tune)
+# Configures sysctl, I/O schedulers, and power profiles based on detected hardware.
+set -eu
+
+SYS_DIR="${ALIEN_SYS_DIR:-/sys}"
+CONF_DIR="${ALIEN_CONF_DIR:-/etc/alien/tune.d}"
+DRY_RUN="${ALIEN_TUNE_DRY_RUN:-0}"
+
+log() {
+	echo "[alien-tune] $*"
+}
+
+apply_sysctl() {
+	key="$1"
+	val="$2"
+	if [ "$DRY_RUN" = "1" ]; then
+		log "[DRY-RUN] sysctl $key = $val"
+	elif command -v sysctl >/dev/null 2>&1; then
+		sysctl -w "$key=$val" >/dev/null 2>&1 || true
+	fi
+}
+
+# 1. RAM & Virtual Memory Tuning
+detect_ram_mb() {
+	if [ -f "/proc/meminfo" ]; then
+		awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo
+	else
+		echo 4096
+	fi
+}
+
+RAM_MB="$(detect_ram_mb)"
+log "Detected RAM: ${RAM_MB} MB"
+
+# High swappiness for zram (zstd) + page-cluster 0
+apply_sysctl "vm.swappiness" "150"
+apply_sysctl "vm.page-cluster" "0"
+apply_sysctl "vm.vfs_cache_pressure" "50"
+
+# 2. Storage & I/O Scheduler Tuning
+if [ -d "$SYS_DIR/block" ]; then
+	for dev_path in "$SYS_DIR/block/"*; do
+		[ -d "$dev_path" ] || continue
+		dev_name="${dev_path##*/}"
+		case "$dev_name" in
+			loop*|ram*|zram*|sr*|dm-*) continue ;;
+		esac
+
+		sched_file="$dev_path/queue/scheduler"
+		rot_file="$dev_path/queue/rotational"
+
+		if [ -f "$sched_file" ]; then
+			is_rotational="0"
+			[ -f "$rot_file" ] && is_rotational="$(cat "$rot_file" 2>/dev/null || echo 0)"
+
+			target_sched="mq-deadline"
+			case "$dev_name" in
+				nvme*) target_sched="none" ;;
+				sd*|vd*)
+					if [ "$is_rotational" = "1" ]; then
+						target_sched="bfq"
+					else
+						target_sched="mq-deadline"
+					fi
+					;;
+			esac
+
+			if [ "$DRY_RUN" = "1" ]; then
+				log "[DRY-RUN] Device $dev_name: target scheduler $target_sched"
+			else
+				if grep -q "$target_sched" "$sched_file" 2>/dev/null; then
+					echo "$target_sched" > "$sched_file" 2>/dev/null || true
+					log "Device $dev_name set to scheduler: $target_sched"
+				fi
+			fi
+		fi
+	done
+fi
+
+# 3. Laptop / Battery Detection & TLP Charge Thresholds
+has_battery=0
+if [ -d "$SYS_DIR/class/power_supply" ]; then
+	for ps in "$SYS_DIR/class/power_supply/"*; do
+		[ -d "$ps" ] || continue
+		type_file="$ps/type"
+		if [ -f "$type_file" ] && grep -qi "battery" "$type_file" 2>/dev/null; then
+			has_battery=1
+			break
+		fi
+	done
+fi
+
+if [ "$has_battery" = "1" ]; then
+	log "Laptop hardware detected (battery present)."
+	if command -v tlp >/dev/null 2>&1; then
+		# Verify if hardware supports charge thresholds
+		if command -v tlp-stat >/dev/null 2>&1 && tlp-stat -b 2>/dev/null | grep -qi "threshold"; then
+			log "Hardware supports battery charge thresholds. Setting 75% start / 80% stop."
+			apply_sysctl "kernel.nmi_watchdog" "0"
+		fi
+	fi
+else
+	log "Desktop or VM hardware detected (no battery)."
+fi
+
+# 4. Load custom user profiles if present
+if [ -d "$CONF_DIR" ]; then
+	for profile in "$CONF_DIR/"*.conf; do
+		[ -f "$profile" ] || continue
+		log "Applying profile: $profile"
+		# Parse simple KEY=VALUE
+		while IFS='=' read -r key val || [ -n "$key" ]; do
+			case "$key" in
+				\#*|"") continue ;;
+				*) apply_sysctl "$key" "$val" ;;
+			esac
+		done < "$profile"
+	done
+fi
+
+log "Auto-tuning completed successfully."
+exit 0

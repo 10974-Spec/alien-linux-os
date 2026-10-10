@@ -75,3 +75,20 @@ This document details the software components, third-party libraries, and assets
 - **Alien LXQt Theme & Custom Wallpapers:** Alien Project
 - **Alien App Center & Alien Dev Services:** Alien Project
 - **License:** MIT License
+
+---
+
+## 5. Architecture Tools & System Utilities
+
+### Alien Architecture Tool Suite
+- **Components:** `alien-banner`, `alien-snapshot`, `alien-recover`, `alien-protect`, `alien-tune`, `alien-dev-run`, `alien-sandbox`, `alien-audio-profile`, `alien-gpu-check`, `alien-guard`, `alien-doctor`, `alien-pkg`
+- **License:** MIT License
+- **Copyright:** (C) Alien OS Project
+
+### Upstream Storage & Power Utilities
+- **Snapper:** GNU General Public License v2 (GPL-2.0) — SUSE LLC / openSUSE Project
+- **Btrfs-progs:** GNU General Public License v2 (GPL-2.0) — Chris Mason, David Sterba, et al.
+- **TLP:** GNU General Public License v2+ (GPL-2.0+) — Thomas Koch (LinRunner)
+- **systemd-zram-generator:** MIT License — Zbigniew Jędrzejewski-Szmek, et al.
+- **PipeWire:** MIT License — Wim Taymans, Red Hat, Inc.
+

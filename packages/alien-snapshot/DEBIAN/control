@@ -1,0 +1,9 @@
+Package: alien-snapshot
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: snapper, btrfs-progs
+Description: Alien OS snapshot management utility
+ This package is part of the Alien OS core architecture.

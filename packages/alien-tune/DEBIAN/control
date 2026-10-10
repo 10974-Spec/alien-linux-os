@@ -1,0 +1,9 @@
+Package: alien-tune
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: procps
+Description: Alien OS hardware-aware performance profile tuner
+ This package is part of the Alien OS core architecture.

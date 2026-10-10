@@ -1,0 +1,9 @@
+Package: alien-guard
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: bash
+Description: Alien OS terminal safety hook protecting core system paths
+ This package is part of the Alien OS core architecture.

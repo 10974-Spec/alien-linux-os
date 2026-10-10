@@ -1,0 +1,9 @@
+Package: alien-boot
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: grub-common
+Description: Alien OS unified GRUB boot configuration and assessment
+ This package is part of the Alien OS core architecture.

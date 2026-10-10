@@ -166,7 +166,7 @@ EOF
 
 # Terminal bashrc branded banner hook (once per terminal, interactive only)
 cat >>"$DEST_OS/bash.bashrc" <<'EOF'
-# Alien OS Interactive Welcome Banner
+# Alien OS Interactive Welcome Banner & Terminal Safety Seat Belt
 if [ -t 1 ] && case "$-" in *i*) true;; *) false;; esac; then
   if [ -z "${ALIEN_NO_BANNER:-}" ] && [ ! -f "${HOME:-}/.config/alien/no-banner" ]; then
     _alien_tty="$(tty 2>/dev/null || echo "notty")"
@@ -177,6 +177,9 @@ if [ -t 1 ] && case "$-" in *i*) true;; *) false;; esac; then
       fi
     fi
     unset _alien_tty
+  fi
+  if [ -f /usr/bin/alien-guard ]; then
+    . /usr/bin/alien-guard
   fi
 fi
 EOF

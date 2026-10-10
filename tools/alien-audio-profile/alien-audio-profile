@@ -1,0 +1,78 @@
+#!/bin/sh
+# Alien OS — Audio Profile Switcher (alien-audio-profile)
+# Configures PipeWire latency, buffer sizes, and sample rates.
+set -eu
+
+PW_CONF_DIR="${HOME:-/root}/.config/pipewire/pipewire.conf.d"
+mkdir -p "$PW_CONF_DIR"
+
+usage() {
+	cat <<EOF
+Usage: alien-audio-profile [desktop | low-latency | pro-audio | status]
+
+Profiles:
+  desktop        Safe everyday buffer (quantum 1024 / 48kHz, no audio dropouts)
+  low-latency    Gaming & responsiveness (quantum 256 / 48kHz, ~5.3ms latency)
+  pro-audio      DAW & recording (quantum 64 / 96kHz, ~0.67ms latency, requires capable hardware)
+  status         Display current PipeWire quantum and sample rate
+EOF
+	exit 0
+}
+
+cmd_status() {
+	echo "=== Alien OS Audio Status ==="
+	if command -v pw-metadata >/dev/null 2>&1; then
+		pw-metadata -n settings || true
+	else
+		echo "PipeWire metadata tool not available."
+	fi
+}
+
+set_profile() {
+	prof="$1"
+	case "$prof" in
+		desktop)
+			quantum=1024
+			rate=48000
+			desc="Desktop (Balanced / Stable)"
+			;;
+		low-latency)
+			quantum=256
+			rate=48000
+			desc="Low Latency (Responsive / Gaming)"
+			;;
+		pro-audio)
+			quantum=64
+			rate=96000
+			desc="Pro Audio (Minimal Latency - warning: small buffers may cause dropouts on weak hardware)"
+			;;
+		*)
+			echo "Unknown profile: $prof"
+			usage
+			;;
+	esac
+
+	cat > "$PW_CONF_DIR/99-alien-profile.conf" <<EOF
+context.properties = {
+    default.clock.rate          = $rate
+    default.clock.allowed-rates = [ 44100 48000 88200 96000 192000 ]
+    default.clock.quantum       = $quantum
+    default.clock.min-quantum   = $quantum
+    default.clock.max-quantum   = $quantum
+}
+EOF
+
+	if command -v pw-metadata >/dev/null 2>&1; then
+		pw-metadata -n settings 0 clock.force-rate "$rate" 2>/dev/null || true
+		pw-metadata -n settings 0 clock.force-quantum "$quantum" 2>/dev/null || true
+	fi
+
+	echo "Switched audio profile to: $desc (Quantum: $quantum, Rate: ${rate}Hz)"
+}
+
+case "${1:-status}" in
+	desktop|low-latency|pro-audio) set_profile "$1" ;;
+	status) cmd_status ;;
+	-h|--help) usage ;;
+	*) echo "Unknown option: $1"; usage ;;
+esac

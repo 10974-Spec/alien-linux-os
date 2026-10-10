@@ -1,19 +1,86 @@
 #!/usr/bin/env bash
-# alien-pkg
-# Installs a package into a systemd-sysext layer
+# Alien OS — Multi-Tier Package Manager Frontend (alien-pkg)
+# Unified gateway across System (APT), Layers (sysext), Flatpak, and Sandboxes.
 set -Eeuo pipefail
 
-PKG="${1:-}"
-if [ -z "$PKG" ]; then
-    echo "Usage: alien-pkg <package-name>"
-    exit 1
-fi
+usage() {
+	cat <<EOF
+Usage: alien-pkg [TIER_OPTION] <ACTION/PACKAGE>
 
-echo "Creating layer for $PKG..."
-alien-layers create "$PKG" "$PKG"
+Tiers:
+  --system <PKG>     Install/manage package on base Debian system (APT)
+  --layer <PKG>      Install package into an isolated systemd-sysext layer
+  --flatpak <PKG>    Install/manage graphical application via Flatpak
+  --sandbox <ENV>    Spawn an ephemeral rootless dev toolchain (Node, Rust, Go...)
+  suggest <NAME>     Recommend the most suitable installation tier for a package
 
-echo "Moving layer to /var/lib/extensions..."
-pkexec mv "$PKG.raw" /var/lib/extensions/
+Default: If no tier is specified, creates a portable systemd-sysext layer.
+EOF
+	exit 0
+}
 
-echo "Reloading layers..."
-alien-layers load
+cmd_suggest() {
+	name="${1:-}"
+	[ -z "$name" ] && usage
+	echo "=== Alien OS Package Tier Recommendation for '$name' ==="
+	case "$name" in
+		node*|python*|rust*|go*|gcc*|clang*|docker*|podman*)
+			echo "Recommended Tier: --sandbox"
+			echo "Reason: Ephemeral development toolchains avoid polluting base system libraries."
+			echo "Try: alien-sandbox $name"
+			;;
+		spotify|steam|discord|vlc|obs|gimp|blender)
+			echo "Recommended Tier: --flatpak"
+			echo "Reason: Desktop GUI apps with frequent upstream releases benefit from container sandboxing."
+			echo "Try: flatpak install $name"
+			;;
+		linux-*|systemd*|btrfs*|grub*|pipewire*|firmware*|mesa*)
+			echo "Recommended Tier: --system"
+			echo "Reason: Core hardware, driver, init, and storage components require direct system integration."
+			echo "Try: sudo apt install $name"
+			;;
+		*)
+			echo "Recommended Tier: --layer or --system"
+			echo "Reason: System utility can run cleanly as an extension layer or Debian package."
+			echo "Try: alien-pkg --system $name   OR   alien-pkg --layer $name"
+			;;
+	esac
+}
+
+case "${1:-}" in
+	-h|--help|"") usage ;;
+	suggest) shift; cmd_suggest "${1:-}"; exit 0 ;;
+	--system)
+		shift
+		echo "Installing via APT on base system: $*"
+		exec pkexec apt-get install "$@"
+		;;
+	--flatpak)
+		shift
+		echo "Installing via Flatpak: $*"
+		exec flatpak install "$@"
+		;;
+	--sandbox)
+		shift
+		exec alien-sandbox "$@"
+		;;
+	--layer)
+		shift
+		PKG="${1:-}"
+		[ -z "$PKG" ] && usage
+		echo "Creating systemd-sysext layer for $PKG..."
+		alien-layers create "$PKG" "$PKG"
+		pkexec mv "$PKG.raw" /var/lib/extensions/
+		alien-layers load
+		exit 0
+		;;
+	*)
+		# Backward compatibility default: sysext layer
+		PKG="$1"
+		echo "Creating systemd-sysext layer for $PKG..."
+		alien-layers create "$PKG" "$PKG"
+		pkexec mv "$PKG.raw" /var/lib/extensions/
+		alien-layers load
+		exit 0
+		;;
+esac

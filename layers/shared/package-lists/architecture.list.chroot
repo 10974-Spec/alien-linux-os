@@ -1,0 +1,11 @@
+# Alien — Architecture, Storage & Performance Stack
+btrfs-progs
+snapper
+systemd-zram-generator
+systemd-oomd
+memtest86+
+os-prober
+tlp
+rtkit
+grub-pc-bin
+grub-efi-amd64-bin

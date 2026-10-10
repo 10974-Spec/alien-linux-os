@@ -1,0 +1,9 @@
+Package: alien-protect
+Version: 1.0
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.local>
+Depends: util-linux
+Description: Alien OS immutable system root protection utility
+ This package is part of the Alien OS core architecture.
