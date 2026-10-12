@@ -100,9 +100,20 @@ cat > "$DEST_GRUB_D/01_alien_boot_counter" <<'EOF'
 #!/bin/sh
 # Alien OS — Boot assessment & automatic fallback counter
 exec tail -n +3 $0
+# Locate EFI System Partition if present
+if [ -z "$esp" ]; then
+  search --no-floppy --file --set=esp /EFI/alien/grubenv
+  if [ -z "$esp" ]; then
+    search --no-floppy --file --set=esp /EFI/debian/grubx64.efi
+  fi
+  if [ -z "$esp" ]; then
+    search --no-floppy --file --set=esp /EFI/BOOT/BOOTX64.EFI
+  fi
+fi
+
 # Load grub environment from ESP or standard location
-if [ -s ($root)/EFI/alien/grubenv ]; then
-  load_env -f ($root)/EFI/alien/grubenv
+if [ -n "$esp" ]; then
+  load_env -f ($esp)/EFI/alien/grubenv
 elif [ -s /boot/grub/grubenv ]; then
   load_env
 fi
@@ -115,8 +126,8 @@ fi
 if [ "${alien_boot_success}" = "1" ]; then
   set alien_boot_tries=3
   set alien_boot_success=0
-  if [ -s ($root)/EFI/alien/grubenv ]; then
-    save_env -f ($root)/EFI/alien/grubenv alien_boot_tries alien_boot_success
+  if [ -n "$esp" ]; then
+    save_env -f ($esp)/EFI/alien/grubenv alien_boot_tries alien_boot_success
   elif [ "${root}" != "btrfs" ]; then
     save_env alien_boot_tries alien_boot_success
   fi
@@ -133,8 +144,8 @@ else
     set timeout_style=menu
     set timeout=10
   fi
-  if [ -s ($root)/EFI/alien/grubenv ]; then
-    save_env -f ($root)/EFI/alien/grubenv alien_boot_tries
+  if [ -n "$esp" ]; then
+    save_env -f ($esp)/EFI/alien/grubenv alien_boot_tries
   elif [ "${root}" != "btrfs" ]; then
     save_env alien_boot_tries
   fi
@@ -165,9 +176,9 @@ mkdir -p "$DEST_BIN"
 cat > "$DEST_BIN/alien-boot-mark-good" <<'EOF'
 #!/bin/sh
 set -eu
-# Check basic health: display manager active
-if systemctl is-active --quiet display-manager.service || systemctl is-active --quiet lightdm.service || systemctl is-active --quiet sddm.service; then
-  if [ -d /boot/efi/EFI/alien ]; then
+# Check basic health: display manager active or graphical target reached
+if systemctl is-active --quiet display-manager.service || systemctl is-active --quiet lightdm.service || systemctl is-active --quiet sddm.service || systemctl is-active --quiet graphical.target; then
+  if [ -d /boot/efi ]; then
     mkdir -p /boot/efi/EFI/alien
     grub-editenv /boot/efi/EFI/alien/grubenv set alien_boot_tries=3 alien_boot_success=1 2>/dev/null || true
   elif [ -f /boot/grub/grubenv ]; then
@@ -185,16 +196,29 @@ cat > "$WORK/config/hooks/normal/9900-boot-menu-branding.hook.binary" <<'EOF'
 #!/bin/sh
 set -e
 
+if [ -d binary ]; then
+  ROOT_BIN="binary"
+else
+  ROOT_BIN="."
+fi
+
 EDITION_CAP="$(echo "$ALIEN_EDITION" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 OS_TITLE="@ALIEN_NAME@ $EDITION_CAP"
 
-mkdir -p binary/boot/grub/themes/alien
-if [ -d binary/boot/grub/themes/alien ]; then
-  cp -a /alien/branding/generated/grub/* binary/boot/grub/themes/alien/ 2>/dev/null || true
+mkdir -p "$ROOT_BIN/boot/grub/themes/alien"
+if [ -d /alien/branding/generated/grub ]; then
+  cp -a /alien/branding/generated/grub/* "$ROOT_BIN/boot/grub/themes/alien/" 2>/dev/null || true
+fi
+
+# Ensure standard vmlinuz and initrd.img symlinks exist in binary/live
+if [ -d "$ROOT_BIN/live" ]; then
+  ( cd "$ROOT_BIN/live" && \
+    for k in vmlinuz-*; do [ -f "$k" ] && ln -sf "$k" vmlinuz; break; done && \
+    for i in initrd.img-*; do [ -f "$i" ] && ln -sf "$i" initrd.img; break; done ) || true
 fi
 
 # Generate unified GRUB configuration for Live ISO
-cat > binary/boot/grub/grub.cfg <<GRUB_EOF
+cat > "$ROOT_BIN/boot/grub/grub.cfg" <<GRUB_EOF
 set default=0
 set timeout=5
 set timeout_style=menu
@@ -211,28 +235,34 @@ loadfont /boot/grub/themes/alien/dejavu-14.pf2
 loadfont /boot/grub/themes/alien/dejavu-bold-14.pf2
 set theme=/boot/grub/themes/alien/theme.txt
 
+# Kernel and initrd paths for Live ISO
 menuentry "$OS_TITLE Live" --class alien --class gnu-linux --class os {
-    linux /live/vmlinuz boot=live components quiet splash locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    initrd /live/initrd.img
+}
+
+menuentry "$OS_TITLE Live (Automated Self-Test)" --class test --class os {
+    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 alien.selftest=1 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
     initrd /live/initrd.img
 }
 
 menuentry "$OS_TITLE Live (Copy to RAM)" --class alien --class ram --class os {
-    linux /live/vmlinuz boot=live components quiet splash alien.toram=auto locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 alien.toram=auto locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
     initrd /live/initrd.img
 }
 
 menuentry "$OS_TITLE Live (Persistence)" --class alien --class disk --class os {
-    linux /live/vmlinuz boot=live components quiet splash persistence locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 persistence locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
     initrd /live/initrd.img
 }
 
 menuentry "Install $OS_TITLE" --class calamares --class install --class os {
-    linux /live/vmlinuz boot=live components quiet splash alien.autoinstall=1 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 alien.autoinstall=1 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
     initrd /live/initrd.img
 }
 
 menuentry "$OS_TITLE (Safe Graphics / nomodeset)" --class recovery --class safe --class os {
-    linux /live/vmlinuz boot=live components nomodeset locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+    linux /live/vmlinuz boot=live components nomodeset console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
     initrd /live/initrd.img
 }
 
@@ -240,9 +270,11 @@ submenu "Tools & Diagnostics" --class tools {
     menuentry "Memory Diagnostic (memtest86+)" --class memtest {
         linux16 /live/memtest86+.bin 2>/dev/null || linux /live/memtest86+ 2>/dev/null || chainloader /boot/memtest.efi
     }
-    menuentry "UEFI Firmware Settings" --class uefi-firmware {
-        fwsetup
-    }
+    if [ "\$grub_platform" = "efi" ]; then
+        menuentry "UEFI Firmware Settings" --class uefi-firmware {
+            fwsetup
+        }
+    fi
     menuentry "Reboot System" --class reboot {
         reboot
     }
@@ -253,8 +285,8 @@ submenu "Tools & Diagnostics" --class tools {
 GRUB_EOF
 
 # Keep isolinux fallback for legacy BIOS media if present
-if [ -d binary/isolinux ]; then
-    cat > binary/isolinux/menu.cfg <<MENU_EOF
+if [ -d "$ROOT_BIN/isolinux" ]; then
+    cat > "$ROOT_BIN/isolinux/menu.cfg" <<MENU_EOF
 menu hshift 0
 menu width 82
 menu title Alien OS Boot Menu
@@ -265,7 +297,7 @@ menu color sel      * #ffffffff @ALIEN_ACCENT@ *
 menu color unsel    * #ffffffff #00000000 none
 menu color timeout  * #ffffffff #00000000 none
 MENU_EOF
-    grep -v "menu background" binary/isolinux/live.cfg >> binary/isolinux/menu.cfg || true
+    grep -v "menu background" "$ROOT_BIN/isolinux/live.cfg" >> "$ROOT_BIN/isolinux/menu.cfg" 2>/dev/null || true
 fi
 EOF
 chmod +x "$WORK/config/hooks/normal/9900-boot-menu-branding.hook.binary"
