@@ -182,20 +182,20 @@ type=desktopswitch
 alignment=Left
 apps\1\desktop=/usr/share/applications/pcmanfm-qt.desktop
 apps\2\desktop=/usr/share/applications/brave-browser.desktop
-apps\3\desktop=/usr/share/applications/telegramdesktop.desktop
+apps\3\desktop=/usr/share/applications/telegram-desktop.desktop
 apps\4\desktop=/usr/share/applications/alien-webapp-whatsapp-web.desktop
 apps\5\desktop=/usr/share/applications/alien-webapp-instagram.desktop
 apps\6\desktop=/usr/share/applications/alien-webapp-tiktok.desktop
 apps\7\desktop=/usr/share/applications/alien-webapp-youtube.desktop
 apps\8\desktop=/usr/share/applications/alien-webapp-spotify.desktop
-apps\9\desktop=/usr/share/applications/vlc.desktop
-apps\10\desktop=/usr/share/applications/vlc.desktop
-apps\11\desktop=/usr/share/applications/alien-webapp-lichess.desktop
-apps\12\desktop=/usr/share/applications/qterminal.desktop
-apps\13\desktop=/usr/share/applications/featherpad.desktop
-apps\14\desktop=/usr/share/applications/lxqt-config.desktop
-apps\15\desktop=/usr/share/applications/alien-store.desktop
-apps\16\desktop=/usr/share/applications/code.desktop
+apps\9\desktop=/usr/share/applications/alien-webapp-telegram.desktop
+apps\10\desktop=/usr/share/applications/alien-player.desktop
+apps\11\desktop=/usr/share/applications/alien-viewer.desktop
+apps\12\desktop=/usr/share/applications/alien-notes.desktop
+apps\13\desktop=/usr/share/applications/alien-store.desktop
+apps\14\desktop=/usr/share/applications/qterminal.desktop
+apps\15\desktop=/usr/share/applications/featherpad.desktop
+apps\16\desktop=/usr/share/applications/lxqt-config.desktop
 apps\size=16
 type=quicklaunch
 
@@ -498,14 +498,18 @@ EOF
 cat > "$DEST_BIN/alien-about" <<'EOF'
 #!/usr/bin/env bash
 # About Alien OS
+BUILD_ID="dev"
+[ -f /etc/alien-build ] && BUILD_ID="$(cat /etc/alien-build | tr -d '\r\n')"
+
 if command -v zenity >/dev/null 2>&1; then
     zenity --info --title="About Alien OS" \
       --window-icon="/usr/share/icons/hicolor/64x64/apps/alien-launcher.png" \
-      --text="<b>Alien OS Lite Edition 0.1</b>\n<i>Your world, your way.</i>\n\n<b>Base:</b> Debian GNU/Linux 13 (Trixie)\n<b>Desktop:</b> LXQt 2.1 & Openbox\n\n<b>Credits & Courtesy:</b>\nAlien OS is proudly built upon Debian and the LXQt Desktop Project.\nSpecial thanks to the Debian, LXQt, and Openbox communities." \
-      --width=420 --ok-label="Close" 2>/dev/null || true
+      --text="<b>Alien OS Lite Edition 0.1</b>\n<i>Your world, your way.</i>\n\n<b>Build ID:</b> ${BUILD_ID}\n<b>Base:</b> Debian GNU/Linux 13 (Trixie)\n<b>Desktop:</b> LXQt 2.1 & Openbox\n\n<b>Icons:</b> Icons8 (Free License with attribution - https://icons8.com)\n\n<b>Credits & Courtesy:</b>\nAlien OS is proudly built upon Debian and the LXQt Desktop Project.\nSpecial thanks to the Debian, LXQt, and Openbox communities." \
+      --width=450 --ok-label="Close" 2>/dev/null || true
 else
-    echo "Alien OS Lite Edition 0.1 — Your world, your way."
+    echo "Alien OS Lite Edition 0.1 (Build: ${BUILD_ID})"
     echo "Built on Debian GNU/Linux and LXQt Desktop."
+    echo "Icons: Icons8 (https://icons8.com)"
 fi
 EOF
 chmod +x "$DEST_BIN/alien-about"

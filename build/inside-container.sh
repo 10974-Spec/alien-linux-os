@@ -6,19 +6,42 @@ set -euo pipefail
 SRC=/alien
 WORK=/work/lb
 source "$SRC/alien.conf"
+export ALIEN_BUILD_ID="${ALIEN_BUILD_ID:-$(date +%Y%m%d-%H%M)}"
 export ALIEN_EDITION_CAPITALIZED="$(echo "$ALIEN_EDITION" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 
 mkdir -p "$WORK"
 cd "$WORK"
 
-# 1. Clean the previous build but keep the download cache (cache/)
-if [ -d .build ]; then lb clean || true; fi
-rm -rf auto config alien.conf
+if [ -d chroot/var/cache/apt/archives ]; then
+    mkdir -p cache/packages.chroot
+    cp -n chroot/var/cache/apt/archives/*.deb cache/packages.chroot/ 2>/dev/null || true
+fi
 
-# Ensure bootstrap cache has CA certificates for HTTPS repositories (like VS Code)
+# 1. Clean the previous build but keep the download cache (cache/)
+rm -rf .build chroot auto config alien.conf
+rm -f "$WORK"/*.iso
+
 if [ -d cache/bootstrap ]; then
-    mkdir -p cache/bootstrap/etc/ssl
+    echo ">>> Restoring chroot from cached bootstrap..."
+    cp -a cache/bootstrap chroot
+    mkdir -p .build
+    touch .build/bootstrap .build/bootstrap_cache.restore .build/bootstrap_cache.save
+fi
+
+mkdir -p /etc/apt/apt.conf.d
+cat > /etc/apt/apt.conf.d/99live-build-apt <<'EOF'
+Acquire::Retries "3";
+Acquire::http::Timeout "60";
+Acquire::ForceIPv4 "true";
+EOF
+
+# Ensure bootstrap cache has CA certificates for HTTPS repositories (like VS Code & Brave)
+if [ -d cache/bootstrap ]; then
+    mkdir -p cache/bootstrap/etc/ssl cache/bootstrap/etc/apt/apt.conf.d
     cp -a /etc/ssl/certs cache/bootstrap/etc/ssl/ 2>/dev/null || true
+    echo "nameserver 1.1.1.1" > cache/bootstrap/etc/resolv.conf 2>/dev/null || true
+    cp /etc/apt/apt.conf.d/99live-build-apt cache/bootstrap/etc/apt/apt.conf.d/ 2>/dev/null || true
+    cp "$SRC/layers/shared/includes.chroot/etc/apt/apt.conf.d/99ssl-verify.conf" cache/bootstrap/etc/apt/apt.conf.d/ 2>/dev/null || true
 fi
 
 # 2. Copy live-build shared config and then layer edition-specific config on top
@@ -42,7 +65,11 @@ if [ -d "$SRC/build/assemble.d" ]; then
   done
 fi
 
-# 4. Fill in @ALIEN_*@ placeholders from alien.conf (accent colour, name...)
+# 4. Write build stamp
+mkdir -p config/includes.chroot/etc
+echo "$ALIEN_BUILD_ID" > config/includes.chroot/etc/alien-build
+
+# 5. Fill in @ALIEN_*@ placeholders from alien.conf (accent colour, name...)
 mapfile -t files < <(grep -rlI '@ALIEN_[A-Z_]*@' config auto 2>/dev/null || true)
 for f in "${files[@]}"; do
   for var in $(compgen -v ALIEN_); do
@@ -59,7 +86,7 @@ if [ "$ALIEN_EDITION" = "lite" ]; then
   lb config \
     --bootappend-live "boot=live components quiet splash locales=$ALIEN_LOCALE keyboard-layouts=$ALIEN_KEYMAP timezone=$ALIEN_TIMEZONE hostname=$ALIEN_HOSTNAME username=$ALIEN_LIVE_USER alien.toram=auto persistence console=ttyS0" \
     --chroot-squashfs-compression-type zstd
-  export MKSQUASHFS_OPTIONS="-b 1M -comp zstd -Xcompression-level 19"
+  export MKSQUASHFS_OPTIONS="-b 1M -comp zstd -Xcompression-level 15 -processors $(nproc)"
 fi
 set +e
 lb build 2>&1 | tee "$SRC/out/build.log"
@@ -73,9 +100,9 @@ if [ "$rc" -ne 0 ] || [ -z "$iso" ]; then
   chown "$HOST_UID:$HOST_GID" "$SRC/out/build.log" || true
   exit 1
 fi
-DATE_STR=$(date +%Y%m%d)
-name="${ALIEN_ID}-${ALIEN_EDITION}-${ALIEN_VERSION}-${DATE_STR}-amd64.iso"
+name="alien-${ALIEN_EDITION}-${ALIEN_BUILD_ID}.iso"
+compat_name="${ALIEN_ID}-${ALIEN_EDITION}-${ALIEN_VERSION}-${ALIEN_BUILD_ID}-amd64.iso"
 mv -f "$iso" "$SRC/out/$name"
-( cd "$SRC/out" && sha256sum "$name" > "$name.sha256" )
-chown "$HOST_UID:$HOST_GID" "$SRC/out" "$SRC/out/$name" "$SRC/out/$name.sha256" "$SRC/out/build.log"
+( cd "$SRC/out" && ln -sf "$name" "$compat_name" && sha256sum "$name" > "$name.sha256" )
+chown -h "$HOST_UID:$HOST_GID" "$SRC/out" "$SRC/out/$name" "$SRC/out/$compat_name" "$SRC/out/$name.sha256" "$SRC/out/build.log"
 echo ">>> SUCCESS: out/$name"
