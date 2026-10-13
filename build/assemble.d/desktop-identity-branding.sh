@@ -7,23 +7,40 @@ source "$SRC/branding/tokens.env"
 
 # --- Phase 5: Desktop ---
 
-# 1. Wallpapers
+# 1. Wallpapers (Include all panel wallpapers; panel_3_1 is default)
 DEST_BG="$WORK/config/includes.chroot/usr/share/backgrounds"
 mkdir -p "$DEST_BG"
-cp "$SRC/branding/generated/backgrounds/bg1-master.svg" "$DEST_BG/alien-bg1.svg"
-cp "$SRC/branding/generated/backgrounds/bg1-1920x1080.png" "$DEST_BG/alien-bg1.png"
-cp "$SRC/branding/generated/backgrounds/bg2-master.png" "$DEST_BG/alien-bg2.png"
+cp "$SRC/branding/generated/backgrounds/bg1-master.svg" "$DEST_BG/alien-bg1.svg" 2>/dev/null || true
+cp "$SRC/branding/generated/backgrounds/bg1-1920x1080.png" "$DEST_BG/alien-bg1.png" 2>/dev/null || true
+cp "$SRC/branding/generated/backgrounds/bg2-master.png" "$DEST_BG/alien-bg2.png" 2>/dev/null || true
 
-# Register Plasma wallpapers (Full)
-DEST_PLASMA_BG="$WORK/config/includes.chroot/usr/share/wallpapers/AlienBG1"
+# Copy all panel wallpapers (.svg and .png)
+cp "$SRC"/branding/generated/backgrounds/panel_*.png "$DEST_BG/" 2>/dev/null || true
+cp "$SRC"/branding/generated/backgrounds/panel_*.svg "$DEST_BG/" 2>/dev/null || true
+cp "$SRC"/branding-assets/bg/panel_*.svg "$DEST_BG/" 2>/dev/null || true
+
+# Set panel_3_1 as the primary default wallpaper
+if [ -f "$DEST_BG/panel_3_1.png" ]; then
+    ln -sf panel_3_1.png "$DEST_BG/default.png"
+    ln -sf panel_3_1.png "$DEST_BG/alien-default.png"
+    ln -sf panel_3_1.png "$DEST_BG/alien-bg1.png"
+fi
+if [ -f "$DEST_BG/panel_3_1.svg" ]; then
+    ln -sf panel_3_1.svg "$DEST_BG/default.svg"
+    ln -sf panel_3_1.svg "$DEST_BG/alien-default.svg"
+fi
+
+# Register Plasma / Desktop wallpapers
+DEST_PLASMA_BG="$WORK/config/includes.chroot/usr/share/wallpapers/Alien"
 mkdir -p "$DEST_PLASMA_BG/contents/images"
-cp "$SRC/branding/generated/backgrounds/bg1-1920x1080.png" "$DEST_PLASMA_BG/contents/images/1920x1080.png"
+if [ -f "$DEST_BG/panel_3_1.png" ]; then
+    cp "$DEST_BG/panel_3_1.png" "$DEST_PLASMA_BG/contents/images/1920x1080.png"
+fi
 cat >"$DEST_PLASMA_BG/metadata.desktop" <<EOF
 [Desktop Entry]
-Name=Alien Default
-X-KDE-PluginInfo-Name=AlienBG1
+Name=Alien Default (Panel 3.1)
+X-KDE-PluginInfo-Name=Alien
 X-KDE-PluginInfo-Author=Alien
-X-KDE-PluginInfo-Email=
 X-KDE-PluginInfo-License=GPLv3
 EOF
 

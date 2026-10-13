@@ -1,35 +1,22 @@
 #!/usr/bin/env bash
 # Alien — configure autostart apps
+# SPDX-License-Identifier: GPL-2.0-only
 set -euo pipefail
 
 DEST="$WORK/config/includes.chroot/etc/skel/.config/autostart"
 mkdir -p "$DEST"
 
-# Autostart Telegram
-cat > "$DEST/org.telegram.desktop.desktop" <<EOF
+# alien-panel-migrate: autostart so existing users get new panel pins added once
+cat > "$DEST/alien-panel-migrate.desktop" <<EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Telegram Desktop
-Comment=Official desktop application for the Telegram messaging service
-Exec=telegram-desktop %u -startintray
-Icon=telegram
-Path=
+Name=Alien Panel Migration
+Comment=Adds new default panel pins for existing users
+Exec=alien-panel-migrate
 Terminal=false
-Categories=Network;InstantMessaging;Qt;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
 EOF
 
-# Autostart WhatsApp Web App
-cat > "$DEST/alien-webapp-whatsapp-web.desktop" <<EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=WhatsApp Web
-Icon=whatsapp
-Exec=brave-browser --app="https://web.whatsapp.com" --class="alien-webapp-whatsapp-web"
-StartupWMClass=alien-webapp-whatsapp-web
-Terminal=false
-Categories=Network;WebBrowser;
-EOF
-
-echo "  - Configured autostart apps (Telegram, WhatsApp)"
+echo "  - Configured autostart (alien-panel-migrate)"

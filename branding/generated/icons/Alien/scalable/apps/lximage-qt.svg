@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="imgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C0FF"/>
+      <stop offset="100%" stop-color="#0052D4"/>
+    </linearGradient>
+    <filter id="imgShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#imgGrad)" filter="url(#imgShadow)"/>
+  <!-- Image frame interior -->
+  <rect x="80" y="80" width="352" height="352" rx="48" fill="#FFFFFF" opacity="0.15"/>
+  <!-- Golden sun -->
+  <circle cx="160" cy="180" r="44" fill="#FFD166"/>
+  <!-- Mountain peaks -->
+  <path d="M100 380 L220 220 L300 320 L360 250 L430 380 Z" fill="#FFFFFF" opacity="0.95"/>
+  <!-- Secondary soft mountain shadow -->
+  <path d="M220 220 L300 320 L270 380 L180 380 Z" fill="#E2E8F0" opacity="0.85"/>
+  <path d="M360 250 L430 380 L340 380 Z" fill="#CBD5E1" opacity="0.85"/>
+</svg>

@@ -16,4 +16,13 @@ EOF
 
 
 
-echo "  - Configured SDDM and Plymouth"
+# Enable serial console autologin on ttyS0 for headless automated testing
+DEST_SERIAL="$WORK/config/includes.chroot/etc/systemd/system/serial-getty@ttyS0.service.d"
+mkdir -p "$DEST_SERIAL"
+cat > "$DEST_SERIAL/autologin.conf" <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I 115200 linux
+EOF
+
+echo "  - Configured SDDM, Plymouth, and serial console autologin"

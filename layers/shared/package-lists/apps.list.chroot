@@ -1,0 +1,30 @@
+# Alien — Core Established Applications (Phase 4 & Phase 6)
+
+# 1. Video Player: VLC Media Player (real, unmodified from Debian 13)
+vlc
+vlc-plugin-base
+vlc-plugin-qt
+libavcodec-extra
+
+# 2. Image Viewer: lximage-qt (LXQt-native, lightweight, format-rich winner)
+lximage-qt
+
+# 3. Notes & Writing: Ghostwriter (Markdown notes and editor)
+ghostwriter
+
+# 4. Quick Text Editor: FeatherPad (LXQt native editor)
+featherpad
+
+# 5. Software Store Substrate: Synaptic, PackageKit, AppStream
+synaptic
+packagekit
+appstream
+lxqt-policykit
+
+# 6. Boot Splash (Plymouth)
+plymouth
+plymouth-themes
+plymouth-label
+
+# 7. Native Messaging: Telegram (Single clearly marked line per Phase 2)
+# telegram-desktop

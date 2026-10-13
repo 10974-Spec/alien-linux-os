@@ -4,31 +4,41 @@ This document details the software components, third-party libraries, and assets
 
 ---
 
-## 1. Developer Stack
+## 1. Core Established Applications
 
-### PostgreSQL
-- **Component:** PostgreSQL Server & Client (`postgresql`, `postgresql-client`, `pgcli`)
-- **License:** PostgreSQL License (liberal open source license similar to BSD or MIT)
-- **Copyright:** (C) 1996-2024 The PostgreSQL Global Development Group
-- **Website:** https://www.postgresql.org/
+### VLC media player
+- **Component:** VLC Media Player (`vlc`, `vlc-plugin-base`, `vlc-plugin-qt`, `libavcodec-extra`)
+- **License:** GNU General Public License v2+ (GPL-2.0+) / GNU Lesser General Public License v2.1+ (LGPL-2.1+)
+- **Copyright:** (C) 1996-present VideoLAN and VLC authors
+- **Website:** https://www.videolan.org/vlc/
 
-### MongoDB Community Server
-- **Component:** MongoDB Server, MongoSH Shell, Database Tools (`mongodb-org-server`, `mongodb-mongosh`, `mongodb-database-tools`)
-- **License:** Server Side Public License (SSPL) Version 1 / Apache-2.0 (mongosh and tools)
-- **Copyright:** (C) 2007-present MongoDB, Inc.
-- **Website:** https://www.mongodb.com/
-- **Distribution Notice:** MongoDB Community Server is licensed under the SSPL. If distributing Alien OS commercially or offering MongoDB as a managed service, review the SSPL requirements.
+### lximage-qt
+- **Component:** LXQt Image Viewer (`lximage-qt`)
+- **License:** GNU General Public License v2+ (GPL-2.0+)
+- **Copyright:** (C) The LXQt Project Developers
+- **Website:** https://github.com/lxqt/lximage-qt
 
-### Visual Studio Code
-- **Component:** Visual Studio Code (`code`)
-- **License:** Microsoft Software License Terms (Proprietary binaries built from the open-source vscode repository)
-- **Copyright:** (C) Microsoft Corporation
-- **Website:** https://code.visualstudio.com/
-- **Distribution Notice & Alternative:** The official VS Code binaries include Microsoft branding and telemetry components under the Microsoft Software License. For public distributions requiring 100% FLOSS licensing, **VSCodium** (licensed under the MIT License) serves as a direct drop-in replacement.
+### Ghostwriter
+- **Component:** Markdown Text & Notes Editor (`ghostwriter`)
+- **License:** GNU General Public License v3+ (GPL-3.0+)
+- **Copyright:** (C) Megan Conkle, The KDE Community
+- **Website:** https://ghostwriter.kde.org/
+
+### FeatherPad
+- **Component:** Lightweight Qt Plain Text Editor (`featherpad`)
+- **License:** GNU General Public License v3+ (GPL-3.0+)
+- **Copyright:** (C) Pedram Pourang (tsujan)
+- **Website:** https://github.com/tsujan/FeatherPad
+
+### Brave Browser
+- **Component:** Brave Web Browser (`brave-browser`)
+- **License:** Mozilla Public License 2.0 (MPL-2.0) / Chromium BSD-3-Clause
+- **Copyright:** (C) Brave Software, Inc.
+- **Website:** https://brave.com/
 
 ---
 
-## 2. Desktop Environment & Core Utilities
+## 2. Desktop Environment & Utilities
 
 ### LXQt Desktop
 - **Component:** LXQt Desktop (`lxqt-core`, `lxqt-panel`, `lxqt-session`, `lxqt-runner`, `pcmanfm-qt`)
@@ -41,54 +51,29 @@ This document details the software components, third-party libraries, and assets
 - **License:** GNU GPL v2 / MIT
 - **Copyright:** Dana Jansens, Mikael Magnusson, Derek Foreman, Yuxuan Shui, et al.
 
-### Dialog Utility
-- **Component:** Zenity (`zenity`)
-- **License:** GNU Lesser General Public License version 2.1 (LGPLv2.1)
-- **Copyright:** Copyright (C) 2002 Sun Microsystems, Inc.
+### Software Center & Package Management
+- **Component:** Synaptic (`synaptic`), PackageKit (`packagekit`), AppStream (`appstream`)
+- **License:** GNU GPL v2+ / GNU LGPL v2.1+
+- **Copyright:** Michael Vogt, Alfredo K. Kojima, Conectiva S/A, Richard Hughes, Matthias Klumpp, et al.
 
-### Icon and Cursor Themes
+---
+
+## 3. Icons, Artwork & Attribution
+
+### Papirus Icon Theme
 - **Component:** Papirus Icon Theme (`papirus-icon-theme`)
-- **License:** GNU GPL v3
-- **Copyright:** Papirus Development Team
-- **Component:** Bibata Cursor Theme (`bibata-cursor-theme`)
-- **License:** GNU GPL v3
-- **Copyright:** Kauntal Majumder (AbdulKaiz)
+- **License:** GNU General Public License v3 (GPL-3.0)
+- **Copyright:** (C) Papirus Development Team
+- **Website:** https://github.com/PapirusDevelopmentTeam/papirus-icon-theme
 
----
+### Icons8 Colored Artwork
+- **Component:** Colored application icons (Video Player, Image Viewer, Notes, Store)
+- **Provider:** Icons8 (https://icons8.com)
+- **Attribution Notice:** Application iconography based on Icons8 Color style (https://icons8.com).
+- **Public Distribution Notice:** Free tier usage requires backlink attribution to https://icons8.com. Public redistribution of binary ISO images requires a license that permits redistribution under Icons8 terms, or fallback to the FLOSS Papirus colored icon set.
 
-## 3. Application Store & Frameworks
-
-### PyQt6 & Qt6
-- **Component:** PyQt6 (`python3-pyqt6`, `python3-pyqt6.qtsvg`)
-- **License:** GNU General Public License v3 (GPLv3)
-- **Copyright:** (C) Riverbank Computing Limited
-
-### AppStream & PackageKit
-- **Component:** AppStream (`appstream`), PackageKit (`packagekit`)
-- **License:** GNU LGPL v2.1+ / GNU GPL v2+
-- **Copyright:** Matthias Klumpp, Richard Hughes, et al.
-
----
-
-## 4. Alien OS Custom Assets & Themes
+### Alien OS Custom Branding
 - **Logos & UI Artwork:** Alien Project (Original Artwork)
-- **Alien LXQt Theme & Custom Wallpapers:** Alien Project
-- **Alien App Center & Alien Dev Services:** Alien Project
+- **Alien Look-and-Feel & Wallpapers:** Alien Project
 - **License:** MIT License
-
----
-
-## 5. Architecture Tools & System Utilities
-
-### Alien Architecture Tool Suite
-- **Components:** `alien-banner`, `alien-snapshot`, `alien-recover`, `alien-protect`, `alien-tune`, `alien-dev-run`, `alien-sandbox`, `alien-audio-profile`, `alien-gpu-check`, `alien-guard`, `alien-doctor`, `alien-pkg`
-- **License:** MIT License
-- **Copyright:** (C) Alien OS Project
-
-### Upstream Storage & Power Utilities
-- **Snapper:** GNU General Public License v2 (GPL-2.0) — SUSE LLC / openSUSE Project
-- **Btrfs-progs:** GNU General Public License v2 (GPL-2.0) — Chris Mason, David Sterba, et al.
-- **TLP:** GNU General Public License v2+ (GPL-2.0+) — Thomas Koch (LinRunner)
-- **systemd-zram-generator:** MIT License — Zbigniew Jędrzejewski-Szmek, et al.
-- **PipeWire:** MIT License — Wim Taymans, Red Hat, Inc.
-
+- **Copyright:** (C) Alien OS Team

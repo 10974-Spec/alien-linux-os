@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# alien-panel-migrate — Migrates LXQt panel Quick Launch pins cleanly (Phase 7)
+# Removes only retired Alien social/skeleton pins; appends missing real apps; preserves user pins.
+# SPDX-License-Identifier: GPL-2.0-only
+set -euo pipefail
+
+CURRENT_VERSION="4"
+
+MARKER_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/alien"
+MARKER_FILE="$MARKER_DIR/panel-defaults-version"
+PANEL_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/lxqt/panel.conf"
+
+mkdir -p "$MARKER_DIR"
+
+INSTALLED_VERSION="0"
+if [ -f "$MARKER_FILE" ]; then
+    INSTALLED_VERSION=$(cat "$MARKER_FILE" | tr -d '[:space:]')
+fi
+
+if [ "$INSTALLED_VERSION" = "$CURRENT_VERSION" ]; then
+    exit 0
+fi
+
+if [ ! -f "$PANEL_CONF" ]; then
+    echo "$CURRENT_VERSION" > "$MARKER_FILE"
+    exit 0
+fi
+
+python3 - <<'PYEOF'
+import os
+import re
+
+conf_path = os.path.expanduser(os.environ.get("PANEL_CONF", ""))
+if not conf_path or not os.path.isfile(conf_path):
+    exit(0)
+
+RETIRED_TARGETS = {
+    "alien-webapp-whatsapp-web.desktop",
+    "alien-webapp-whatsapp.desktop",
+    "alien-webapp-instagram.desktop",
+    "alien-webapp-tiktok.desktop",
+    "alien-webapp-youtube.desktop",
+    "alien-webapp-spotify.desktop",
+    "alien-webapp-telegram.desktop",
+    "alien-player.desktop",
+    "alien-viewer.desktop",
+    "alien-notes.desktop",
+}
+
+REQUIRED_PINS = [
+    "/usr/share/applications/vlc.desktop",
+    "/usr/share/applications/lximage-qt.desktop",
+    "/usr/share/applications/ghostwriter.desktop",
+    "/usr/share/applications/alien-store.desktop",
+]
+
+with open(conf_path, "r", encoding="utf-8") as f:
+    lines = f.read().splitlines()
+
+new_lines = []
+in_ql = False
+existing_pins = []
+
+for line in lines:
+    if line.strip() == "[quicklaunch]":
+        in_ql = True
+        new_lines.append(line)
+        continue
+    elif in_ql and line.startswith("["):
+        in_ql = False
+
+    if in_ql:
+        m = re.match(r"^apps\\(\d+)\\desktop=(.*)$", line)
+        if m:
+            pin_path = m.group(2).strip()
+            pin_base = os.path.basename(pin_path)
+            if pin_base in RETIRED_TARGETS:
+                continue
+            existing_pins.append(pin_path)
+            continue
+        elif line.startswith("apps\\size="):
+            continue
+        else:
+            new_lines.append(line)
+    else:
+        new_lines.append(line)
+
+for req in REQUIRED_PINS:
+    if req not in existing_pins:
+        existing_pins.append(req)
+
+# Inject updated pins into [quicklaunch]
+final_lines = []
+for line in new_lines:
+    final_lines.append(line)
+    if line.strip() == "[quicklaunch]":
+        for idx, pin in enumerate(existing_pins, start=1):
+            final_lines.append(f"apps\\{idx}\\desktop={pin}")
+        final_lines.append(f"apps\\size={len(existing_pins)}")
+
+with open(conf_path, "w", encoding="utf-8") as f:
+    f.write("\n".join(final_lines) + "\n")
+
+print(f"alien-panel-migrate: migrated Quick Launch with {len(existing_pins)} pins.")
+PYEOF
+
+# Reload panel if running
+if command -v pkill >/dev/null 2>&1; then
+    pkill -USR1 lxqt-panel 2>/dev/null || true
+elif command -v killall >/dev/null 2>&1; then
+    killall -USR1 lxqt-panel 2>/dev/null || true
+fi
+
+echo "$CURRENT_VERSION" > "$MARKER_FILE"
+echo "alien-panel-migrate: version $CURRENT_VERSION marker recorded."

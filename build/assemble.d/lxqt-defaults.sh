@@ -37,11 +37,15 @@ EOF
 cp -a "$ETC_QTERMINAL/qterminal.ini" "$SKEL_QTERMINAL/qterminal.ini"
 
 
-# Ensure Alien wallpaper is in backgrounds
+# Ensure Alien panel wallpapers are in backgrounds
 DEST_BG="$WORK/config/includes.chroot/usr/share/backgrounds"
 mkdir -p "$DEST_BG"
-if [ -f "$SRC/branding/generated/backgrounds/bg1-1920x1080.png" ]; then
-    cp "$SRC/branding/generated/backgrounds/bg1-1920x1080.png" "$DEST_BG/alien-bg1.png"
+cp "$SRC"/branding/generated/backgrounds/panel_*.png "$DEST_BG/" 2>/dev/null || true
+cp "$SRC"/branding/generated/backgrounds/panel_*.svg "$DEST_BG/" 2>/dev/null || true
+cp "$SRC"/branding-assets/bg/panel_*.svg "$DEST_BG/" 2>/dev/null || true
+if [ -f "$DEST_BG/panel_3_1.png" ]; then
+    ln -sf panel_3_1.png "$DEST_BG/alien-bg1.png"
+    ln -sf panel_3_1.png "$DEST_BG/default.png"
 fi
 
 # Ensure alien-launcher icon exists in hicolor and scalable
@@ -58,9 +62,13 @@ fi
 # A. Install Alien Icon Theme (inheriting Papirus-Dark, overriding feather)
 # -----------------------------------------------------------------------------
 DEST_ALIEN_ICON="$WORK/config/includes.chroot/usr/share/icons/Alien"
-mkdir -p "$DEST_ALIEN_ICON"
+DEST_PIXMAPS="$WORK/config/includes.chroot/usr/share/pixmaps"
+mkdir -p "$DEST_ALIEN_ICON" "$DEST_PIXMAPS"
 if [ -d "$SRC/branding/generated/icons/Alien" ]; then
     cp -a "$SRC/branding/generated/icons/Alien/"* "$DEST_ALIEN_ICON/"
+fi
+if [ -d "$SRC/branding/generated/icons/apps" ]; then
+    cp -a "$SRC/branding/generated/icons/apps/"*.svg "$DEST_PIXMAPS/" 2>/dev/null || true
 fi
 
 
@@ -130,7 +138,7 @@ cp -a "$ETC_LXQT/lxqt.conf" "$SKEL_LXQT/lxqt.conf"
 cat > "$ETC_PCMANFM/settings.conf" <<EOF
 [Desktop]
 DesktopShortcuts=Home, Trash, Computer, Network
-Wallpaper=/usr/share/backgrounds/alien-bg1.png
+Wallpaper=/usr/share/backgrounds/panel_3_1.png
 WallpaperMode=stretch
 WallpaperRandomize=false
 
@@ -183,20 +191,14 @@ alignment=Left
 apps\1\desktop=/usr/share/applications/pcmanfm-qt.desktop
 apps\2\desktop=/usr/share/applications/brave-browser.desktop
 apps\3\desktop=/usr/share/applications/telegram-desktop.desktop
-apps\4\desktop=/usr/share/applications/alien-webapp-whatsapp-web.desktop
-apps\5\desktop=/usr/share/applications/alien-webapp-instagram.desktop
-apps\6\desktop=/usr/share/applications/alien-webapp-tiktok.desktop
-apps\7\desktop=/usr/share/applications/alien-webapp-youtube.desktop
-apps\8\desktop=/usr/share/applications/alien-webapp-spotify.desktop
-apps\9\desktop=/usr/share/applications/alien-webapp-telegram.desktop
-apps\10\desktop=/usr/share/applications/alien-player.desktop
-apps\11\desktop=/usr/share/applications/alien-viewer.desktop
-apps\12\desktop=/usr/share/applications/alien-notes.desktop
-apps\13\desktop=/usr/share/applications/alien-store.desktop
-apps\14\desktop=/usr/share/applications/qterminal.desktop
-apps\15\desktop=/usr/share/applications/featherpad.desktop
-apps\16\desktop=/usr/share/applications/lxqt-config.desktop
-apps\size=16
+apps\4\desktop=/usr/share/applications/vlc.desktop
+apps\5\desktop=/usr/share/applications/lximage-qt.desktop
+apps\6\desktop=/usr/share/applications/ghostwriter.desktop
+apps\7\desktop=/usr/share/applications/alien-store.desktop
+apps\8\desktop=/usr/share/applications/qterminal.desktop
+apps\9\desktop=/usr/share/applications/featherpad.desktop
+apps\10\desktop=/usr/share/applications/lxqt-config.desktop
+apps\size=10
 type=quicklaunch
 
 [taskbar]

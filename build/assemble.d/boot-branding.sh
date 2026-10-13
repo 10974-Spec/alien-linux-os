@@ -51,12 +51,15 @@ EOF
 
 # Rebuild initramfs hook so Plymouth theme is included in the ISO
 mkdir -p "$WORK/config/hooks/normal"
-cat > "$WORK/config/hooks/normal/0050-plymouth-update.hook.chroot" <<EOF
+cat > "$WORK/config/hooks/normal/0050-plymouth-update.hook.chroot" <<'EOF'
 #!/bin/sh
 set -e
-# Ensure plymouth theme is updated in initramfs
+# Ensure plymouth theme is set and baked into initramfs
 if command -v plymouth-set-default-theme >/dev/null; then
-    plymouth-set-default-theme -R alien
+    plymouth-set-default-theme -R alien || true
+fi
+if command -v update-initramfs >/dev/null; then
+    update-initramfs -u -k all || true
 fi
 EOF
 chmod +x "$WORK/config/hooks/normal/0050-plymouth-update.hook.chroot"
@@ -82,14 +85,14 @@ cat > "$DEST_GRUB_CONF/50_alien.cfg" <<'EOF'
 # Alien OS Architecture & GRUB Configuration
 GRUB_DEFAULT=saved
 GRUB_SAVEDEFAULT=false
-GRUB_TIMEOUT=5
+GRUB_TIMEOUT=1
 GRUB_TIMEOUT_STYLE=hidden
 GRUB_RECORDFAIL_TIMEOUT=5
 GRUB_THEME=/boot/grub/themes/alien/theme.txt
 GRUB_GFXMODE=auto
 GRUB_GFXPAYLOAD_LINUX=keep
 GRUB_DISABLE_OS_PROBER=false
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash panic=10"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 panic=10"
 EOF
 
 # Unbrickable Boot Assessment: Attempt counter in GRUB
@@ -220,11 +223,12 @@ fi
 # Generate unified GRUB configuration for Live ISO
 cat > "$ROOT_BIN/boot/grub/grub.cfg" <<GRUB_EOF
 set default=0
-set timeout=5
-set timeout_style=menu
+set timeout=1
+set timeout_style=hidden
 
-# Enable high-resolution graphics
+# Enable high-resolution graphics and keep for kernel
 set gfxmode=auto
+set gfxpayload=keep
 insmod all_video
 insmod gfxterm
 insmod png
@@ -235,49 +239,53 @@ loadfont /boot/grub/themes/alien/dejavu-14.pf2
 loadfont /boot/grub/themes/alien/dejavu-bold-14.pf2
 set theme=/boot/grub/themes/alien/theme.txt
 
-# Kernel and initrd paths for Live ISO
-menuentry "$OS_TITLE Live" --class alien --class gnu-linux --class os {
-    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+# Visible top-level is a single entry
+menuentry "$OS_TITLE" --class alien --class gnu-linux --class os {
+    linux /live/vmlinuz boot=live components quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
     initrd /live/initrd.img
 }
 
-menuentry "$OS_TITLE Live (Automated Self-Test)" --class test --class os {
-    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 alien.selftest=1 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
-    initrd /live/initrd.img
-}
+# Everything else lives in a single "More options" submenu
+submenu "More options" --class submenu {
+    menuentry "$OS_TITLE (Automated Self-Test)" --class test --class os {
+        linux /live/vmlinuz boot=live components quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 alien.selftest=1 console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+        initrd /live/initrd.img
+    }
 
-menuentry "$OS_TITLE Live (Copy to RAM)" --class alien --class ram --class os {
-    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 alien.toram=auto locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
-    initrd /live/initrd.img
-}
+    menuentry "$OS_TITLE (Copy to RAM)" --class alien --class ram --class os {
+        linux /live/vmlinuz boot=live components quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 alien.toram=auto console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+        initrd /live/initrd.img
+    }
 
-menuentry "$OS_TITLE Live (Persistence)" --class alien --class disk --class os {
-    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 persistence locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
-    initrd /live/initrd.img
-}
+    menuentry "$OS_TITLE (Persistence)" --class alien --class disk --class os {
+        linux /live/vmlinuz boot=live components quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 persistence console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+        initrd /live/initrd.img
+    }
 
-menuentry "Install $OS_TITLE" --class calamares --class install --class os {
-    linux /live/vmlinuz boot=live components quiet splash console=tty0 console=ttyS0 alien.autoinstall=1 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
-    initrd /live/initrd.img
-}
+    menuentry "$OS_TITLE (Safe Graphics / nomodeset)" --class recovery --class safe --class os {
+        linux /live/vmlinuz boot=live components nomodeset console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+        initrd /live/initrd.img
+    }
 
-menuentry "$OS_TITLE (Safe Graphics / nomodeset)" --class recovery --class safe --class os {
-    linux /live/vmlinuz boot=live components nomodeset console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
-    initrd /live/initrd.img
-}
+    menuentry "Install $OS_TITLE" --class calamares --class install --class os {
+        linux /live/vmlinuz boot=live components quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 alien.autoinstall=1 console=tty0 console=ttyS0 locales=@ALIEN_LOCALE@ keyboard-layouts=@ALIEN_KEYMAP@ timezone=@ALIEN_TIMEZONE@ hostname=@ALIEN_HOSTNAME@ username=@ALIEN_LIVE_USER@
+        initrd /live/initrd.img
+    }
 
-submenu "Tools & Diagnostics" --class tools {
     menuentry "Memory Diagnostic (memtest86+)" --class memtest {
         linux16 /live/memtest86+.bin 2>/dev/null || linux /live/memtest86+ 2>/dev/null || chainloader /boot/memtest.efi
     }
+
     if [ "\$grub_platform" = "efi" ]; then
         menuentry "UEFI Firmware Settings" --class uefi-firmware {
             fwsetup
         }
     fi
+
     menuentry "Reboot System" --class reboot {
         reboot
     }
+
     menuentry "Power Off" --class shutdown {
         halt
     }

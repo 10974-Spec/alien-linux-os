@@ -25,13 +25,11 @@ if [ -f "$SRC/layers/shared/keyrings/packages.microsoft.gpg" ]; then
     cp "$SRC/layers/shared/keyrings/packages.microsoft.gpg" "$WORK/config/includes.chroot/usr/share/keyrings/packages.microsoft.gpg"
 fi
 
-cat > "$DEST_SOURCES/mongodb-org-8.0.list" <<'EOF'
-deb [arch=amd64 signed-by=/etc/apt/keyrings/mongodb-server-8.0.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main
-EOF
-
-cat > "$DEST_SOURCES/vscode.list" <<'EOF'
-deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
-EOF
+if [ -f "$SRC/layers/shared/keyrings/brave-browser-archive-keyring.gpg" ]; then
+    cp "$SRC/layers/shared/keyrings/brave-browser-archive-keyring.gpg" "$DEST_KEYRINGS/brave-browser-archive-keyring.gpg"
+    mkdir -p "$WORK/config/includes.chroot/usr/share/keyrings"
+    cp "$SRC/layers/shared/keyrings/brave-browser-archive-keyring.gpg" "$WORK/config/includes.chroot/usr/share/keyrings/brave-browser-archive-keyring.gpg"
+fi
 
 # 2. VS Code default extension recommendations
 cat > "$DEST_SKEL_VSCODE/extensions.json" <<'EOF'

@@ -57,24 +57,7 @@ ScrollMethod=1
 TapToClick=true
 EOF
 
-# 3. Default Applications
-cat > "$DEST/mimeapps.list" <<EOF
-[Default Applications]
-text/html=brave-browser.desktop
-x-scheme-handler/http=brave-browser.desktop
-x-scheme-handler/https=brave-browser.desktop
-x-scheme-handler/about=brave-browser.desktop
-x-scheme-handler/unknown=brave-browser.desktop
-inode/directory=org.kde.dolphin.desktop
-audio/mpeg=org.kde.elisa.desktop
-audio/x-wav=org.kde.elisa.desktop
-audio/flac=org.kde.elisa.desktop
-video/mp4=io.mpv.Mpv.desktop
-video/x-matroska=io.mpv.Mpv.desktop
-image/jpeg=org.kde.gwenview.desktop
-image/png=org.kde.gwenview.desktop
-application/pdf=org.kde.okular.desktop
-EOF
+# 3. Default Applications are centrally managed by apps-desktop.sh
 
 # 4. Window Rules (open apps on specific workspaces)
 cat > "$DEST/kwinrulesrc" <<EOF

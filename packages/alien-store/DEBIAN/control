@@ -1,0 +1,9 @@
+Package: alien-store
+Version: 1.0.0-1
+Section: admin
+Priority: optional
+Architecture: all
+Depends: bash, libflatpak0, libxkbcommon0
+Maintainer: Alien OS Team <team@alienos.org>
+Description: Alien OS Software Center
+ Rebranded COSMIC Store 1.0.0 for Alien OS with software rasterizer support.

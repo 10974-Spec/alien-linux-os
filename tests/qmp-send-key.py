@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-import sys, socket, json, time
+import sys, socket, json, time, os
 
 if len(sys.argv) < 2:
     print("Usage: qmp-send-key.py <key1> [key2 ...]")
     sys.exit(1)
 
 keys = sys.argv[1:]
-sock_path = "/home/nyakoe/Desktop/alien/vm/qmp.sock"
+sock_path = os.environ.get("QMP_SOCK", "/home/nyakoe/Desktop/alien/vm/qmp.sock")
+if len(sys.argv) > 2 and sys.argv[1] == "--sock":
+    sock_path = sys.argv[2]
+    keys = sys.argv[3:]
 
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.settimeout(5.0)

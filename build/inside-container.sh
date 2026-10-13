@@ -28,21 +28,26 @@ if [ -d cache/bootstrap ]; then
     touch .build/bootstrap .build/bootstrap_cache.restore .build/bootstrap_cache.save
 fi
 
+printf "nameserver 1.1.1.1\nnameserver 8.8.8.8\n" > /etc/resolv.conf 2>/dev/null || true
+
 mkdir -p /etc/apt/apt.conf.d
 cat > /etc/apt/apt.conf.d/99live-build-apt <<'EOF'
-Acquire::Retries "3";
-Acquire::http::Timeout "60";
+Acquire::Retries "5";
+Acquire::http::Timeout "45";
 Acquire::ForceIPv4 "true";
 EOF
 
-# Ensure bootstrap cache has CA certificates for HTTPS repositories (like VS Code & Brave)
-if [ -d cache/bootstrap ]; then
-    mkdir -p cache/bootstrap/etc/ssl cache/bootstrap/etc/apt/apt.conf.d
-    cp -a /etc/ssl/certs cache/bootstrap/etc/ssl/ 2>/dev/null || true
-    echo "nameserver 1.1.1.1" > cache/bootstrap/etc/resolv.conf 2>/dev/null || true
-    cp /etc/apt/apt.conf.d/99live-build-apt cache/bootstrap/etc/apt/apt.conf.d/ 2>/dev/null || true
-    cp "$SRC/layers/shared/includes.chroot/etc/apt/apt.conf.d/99ssl-verify.conf" cache/bootstrap/etc/apt/apt.conf.d/ 2>/dev/null || true
-fi
+# Ensure chroot and bootstrap cache have CA certificates and keyrings for HTTPS repositories (Brave & VS Code)
+for target in cache/bootstrap chroot; do
+    if [ -d "$target" ]; then
+        mkdir -p "$target/etc/ssl" "$target/etc/apt/apt.conf.d" "$target/etc/apt/keyrings"
+        cp -a /etc/ssl/certs "$target/etc/ssl/" 2>/dev/null || true
+        echo "nameserver 1.1.1.1" > "$target/etc/resolv.conf" 2>/dev/null || true
+        cp /etc/apt/apt.conf.d/99live-build-apt "$target/etc/apt/apt.conf.d/" 2>/dev/null || true
+        cp "$SRC/layers/shared/includes.chroot/etc/apt/apt.conf.d/99ssl-verify.conf" "$target/etc/apt/apt.conf.d/" 2>/dev/null || true
+        cp "$SRC/layers/shared/keyrings/brave-browser-archive-keyring.gpg" "$target/etc/apt/keyrings/" 2>/dev/null || true
+    fi
+done
 
 # 2. Copy live-build shared config and then layer edition-specific config on top
 cp -a "$SRC/build/auto" .
@@ -84,7 +89,7 @@ lb config
 if [ "$ALIEN_EDITION" = "lite" ]; then
   # Overwrite specific options for the Lite edition
   lb config \
-    --bootappend-live "boot=live components quiet splash locales=$ALIEN_LOCALE keyboard-layouts=$ALIEN_KEYMAP timezone=$ALIEN_TIMEZONE hostname=$ALIEN_HOSTNAME username=$ALIEN_LIVE_USER alien.toram=auto persistence console=ttyS0" \
+    --bootappend-live "boot=live components quiet splash loglevel=3 systemd.show_status=false vt.global_cursor_default=0 locales=$ALIEN_LOCALE keyboard-layouts=$ALIEN_KEYMAP timezone=$ALIEN_TIMEZONE hostname=$ALIEN_HOSTNAME username=$ALIEN_LIVE_USER alien.toram=auto persistence console=ttyS0" \
     --chroot-squashfs-compression-type zstd
   export MKSQUASHFS_OPTIONS="-b 1M -comp zstd -Xcompression-level 15 -processors $(nproc)"
 fi

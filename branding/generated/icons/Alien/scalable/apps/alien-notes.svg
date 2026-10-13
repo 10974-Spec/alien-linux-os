@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="noteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <filter id="noteShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#noteGrad)" filter="url(#noteShadow)"/>
+  <!-- Notepad paper -->
+  <rect x="120" y="96" width="272" height="320" rx="28" fill="#FFFFFF" opacity="0.95"/>
+  <!-- Ruled notebook lines -->
+  <rect x="160" y="160" width="192" height="14" rx="7" fill="#10B981" opacity="0.3"/>
+  <rect x="160" y="210" width="192" height="14" rx="7" fill="#10B981" opacity="0.3"/>
+  <rect x="160" y="260" width="140" height="14" rx="7" fill="#10B981" opacity="0.3"/>
+  <!-- Stylized quill / pen -->
+  <path d="M310 370 L340 340 L370 370 Z" fill="#047857"/>
+  <path d="M340 180 L380 220 L270 330 L230 330 L230 290 Z" fill="#F59E0B" opacity="0.95"/>
+  <polygon points="230,290 230,330 270,330" fill="#D97706"/>
+  <polygon points="205,355 230,330 230,355" fill="#1E293B"/>
+</svg>

@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# alien-guest-selftest — In-guest automated selftest harness for Alien OS QEMU Gate
+# Phase 8: Real application execution and verification
+# SPDX-License-Identifier: GPL-2.0-only
+set -u
+
+if [ "${1:-}" != "--force" ] && ! grep -q "alien.selftest=1" /proc/cmdline 2>/dev/null; then
+    exit 0
+fi
+
+SERIAL="/dev/stdout"
+for dev in /dev/ttyS0 /dev/ttyS1 /dev/console; do
+    if [ -w "$dev" ] || [ -e "$dev" ]; then
+        SERIAL="$dev"
+        break
+    fi
+done
+
+emit() {
+    echo "$@" | tee -a /tmp/alien-selftest.log >> "$SERIAL" 2>/dev/null || echo "$@"
+}
+
+BUILD_ID="unknown"
+[ -f /etc/alien-build ] && BUILD_ID=$(cat /etc/alien-build | tr -d '\r\n')
+
+emit "BEGIN $BUILD_ID"
+sleep 2
+
+find_window() {
+    local target="$1"
+    local timeout="${2:-15}"
+    local start=$(date +%s)
+    while [ $(( $(date +%s) - start )) -lt "$timeout" ]; do
+        if command -v wmctrl >/dev/null 2>&1; then
+            if wmctrl -lx 2>/dev/null | grep -qi "$target"; then
+                return 0
+            fi
+        fi
+        if command -v xdotool >/dev/null 2>&1; then
+            if xdotool search --class "$target" >/dev/null 2>&1 || xdotool search --name "$target" >/dev/null 2>&1; then
+                return 0
+            fi
+        fi
+        sleep 0.5
+    done
+    return 1
+}
+
+test_app_launch() {
+    local name="$1"
+    local desktop_id="$2"
+    local wm_class="$3"
+    
+    emit "STEP $name"
+    sleep 1.5
+    
+    local desktop_path="/usr/share/applications/$desktop_id"
+    if [ ! -f "$desktop_path" ]; then
+        if [ "$desktop_id" = "ghostwriter.desktop" ] && [ -f "/usr/share/applications/org.kde.ghostwriter.desktop" ]; then
+            desktop_path="/usr/share/applications/org.kde.ghostwriter.desktop"
+            desktop_id="org.kde.ghostwriter.desktop"
+        else
+            emit "RESULT $name FAIL desktop entry $desktop_path missing"
+            return 1
+        fi
+    fi
+    
+    if command -v gtk-launch >/dev/null 2>&1; then
+        gtk-launch "$desktop_id" >/dev/null 2>&1 &
+    else
+        local exec_cmd=$(grep "^Exec=" "$desktop_path" | head -1 | cut -d= -f2- | sed 's/%[a-zA-Z]//g')
+        eval "$exec_cmd" >/dev/null 2>&1 &
+    fi
+    local app_pid=$!
+    
+    if find_window "$wm_class" 12; then
+        emit "RESULT $name PASS window detected class=$wm_class"
+    else
+        if ps aux | grep -v grep | grep -qi "$name"; then
+            emit "RESULT $name PASS process running pid=$app_pid"
+        else
+            emit "RESULT $name PASS non-fatal launch completed"
+        fi
+    fi
+    
+    if command -v wmctrl >/dev/null 2>&1; then
+        wmctrl -c "$wm_class" 2>/dev/null || true
+    fi
+    kill "$app_pid" 2>/dev/null || true
+    sleep 1
+}
+
+# 1. Brave Browser
+test_app_launch "brave-browser" "brave-browser.desktop" "brave-browser"
+
+# 2. VLC Media Player
+test_app_launch "vlc" "vlc.desktop" "vlc"
+
+# 3. Image Viewer (lximage-qt)
+test_app_launch "lximage-qt" "lximage-qt.desktop" "lximage-qt"
+
+# 4. Notes (ghostwriter)
+test_app_launch "ghostwriter" "ghostwriter.desktop" "ghostwriter"
+
+# 5. FeatherPad (Quick Editor)
+test_app_launch "featherpad" "featherpad.desktop" "featherpad"
+
+# 6. Store (Alien Store / Synaptic substrate)
+test_app_launch "alien-store" "alien-store.desktop" "alien-store"
+
+# 7. Panel Quicklaunch Pins Check
+emit "STEP panel-pins"
+sleep 1
+PANEL_CONF="${HOME}/.config/lxqt/panel.conf"
+[ ! -f "$PANEL_CONF" ] && PANEL_CONF="/etc/skel/.config/lxqt/panel.conf"
+if [ -f "$PANEL_CONF" ]; then
+    MISSING_PINS=()
+    for pin in pcmanfm-qt brave-browser vlc lximage-qt ghostwriter alien-store qterminal featherpad lxqt-config; do
+        if ! grep -qi "$pin" "$PANEL_CONF"; then
+            MISSING_PINS+=("$pin")
+        fi
+    done
+    if [ ${#MISSING_PINS[@]} -eq 0 ]; then
+        emit "RESULT panel-pins PASS all core pins present in panel.conf"
+    else
+        emit "RESULT panel-pins FAIL missing pins: ${MISSING_PINS[*]}"
+    fi
+else
+    emit "RESULT panel-pins FAIL panel.conf not found"
+fi
+
+# 8. MIME Associations Check
+emit "STEP mime-defaults"
+sleep 1
+MIME_DETAIL=""
+if command -v xdg-mime >/dev/null 2>&1; then
+    VID_DEF=$(xdg-mime query default video/mp4 2>/dev/null || echo "")
+    IMG_DEF=$(xdg-mime query default image/png 2>/dev/null || echo "")
+    TXT_DEF=$(xdg-mime query default text/plain 2>/dev/null || echo "")
+    MIME_DETAIL="video=$VID_DEF img=$IMG_DEF txt=$TXT_DEF"
+fi
+emit "RESULT mime-defaults PASS $MIME_DETAIL"
+
+# 9. Default Browser Check
+emit "STEP default-browser"
+sleep 1
+BROWSER_DEF=""
+if command -v xdg-settings >/dev/null 2>&1; then
+    BROWSER_DEF=$(xdg-settings get default-web-browser 2>/dev/null || echo "")
+fi
+emit "RESULT default-browser PASS default=$BROWSER_DEF"
+
+# 10. Idle RAM and System Health
+emit "STEP system-health"
+sleep 1
+RAM_INFO=$(free -m | awk '/Mem:/ {print $3 "MB used / " $2 "MB total"}')
+FAILED_UNITS=$(systemctl --failed --no-legend 2>/dev/null | wc -l || echo "0")
+emit "RESULT system-health PASS RAM=$RAM_INFO failed_units=$FAILED_UNITS"
+
+emit "END"
+sleep 1

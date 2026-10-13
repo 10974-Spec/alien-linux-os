@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A00"/>
+      <stop offset="100%" stop-color="#E53935"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bgGrad)" filter="url(#shadow)"/>
+  <!-- Traffic cone / player silhouette -->
+  <path d="M256 100 L180 340 L332 340 Z" fill="#FFFFFF" opacity="0.95"/>
+  <ellipse cx="256" cy="340" rx="76" ry="24" fill="#FFFFFF" opacity="0.95"/>
+  <!-- Cone stripes -->
+  <path d="M228 190 L284 190 L296 230 L216 230 Z" fill="#E53935" opacity="0.9"/>
+  <path d="M208 260 L304 260 L318 300 L194 300 Z" fill="#E53935" opacity="0.9"/>
+  <!-- Cone base plate -->
+  <rect x="140" y="360" width="232" height="36" rx="18" fill="#FFFFFF"/>
+  <!-- Sleek play symbol overlay on base -->
+  <polygon points="246,238 276,256 246,274" fill="#FFFFFF" opacity="0.9"/>
+</svg>

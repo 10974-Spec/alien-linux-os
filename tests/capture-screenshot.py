@@ -6,8 +6,8 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 out_png = sys.argv[1]
-sock_path = "/home/nyakoe/Desktop/alien/vm/qmp.sock"
-ppm_path = "/tmp/qemu-screenshot.ppm"
+sock_path = sys.argv[2] if len(sys.argv) > 2 else "/home/nyakoe/Desktop/alien/vm/qmp.sock"
+ppm_path = f"/tmp/qemu-screenshot-{os.getpid()}.ppm"
 
 if not os.path.exists(sock_path):
     print(f"Error: QMP socket {sock_path} not found.")

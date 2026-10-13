@@ -100,12 +100,13 @@ mkdir -p "$DEST_GRUB_D"
 cat > "$DEST_GRUB_D/41_snapshots-btrfs" <<'EOF'
 #!/bin/sh
 # Generate GRUB menu entries for Btrfs snapshots
-exec tail -n +3 $0
+set -e
 
 if [ -d "/.snapshots" ] && [ -x "$(command -v btrfs)" ]; then
-  snapshots="$(find /.snapshots/*/snapshot -maxdepth 0 2>/dev/null || true)"
-  if [ -n "$snapshots" ]; then
-    echo "submenu 'Alien OS Snapshots' --class snapshots --class recovery {"
+  root_uuid="${GRUB_DEVICE_UUID:-$(grub-probe --target=fs_uuid / 2>/dev/null || true)}"
+  snapshots="$(find /.snapshots/*/snapshot -maxdepth 0 2>/dev/null | sort -V -r || true)"
+  if [ -n "$snapshots" ] && [ -n "$root_uuid" ]; then
+    echo "submenu 'Alien OS Snapshots & Rollbacks' --class snapshots --class recovery {"
     for snap in $snapshots; do
       num="$(basename "$(dirname "$snap")")"
       info_file="/.snapshots/$num/info.xml"
@@ -114,13 +115,13 @@ if [ -d "/.snapshots" ] && [ -x "$(command -v btrfs)" ]; then
         d="$(grep -oPm1 "(?<=<description>)[^<]+" "$info_file" 2>/dev/null || true)"
         [ -n "$d" ] && desc="$desc ($d)"
       fi
-      echo "  menuentry 'Restore/Boot: $desc' --class snapshot {"
+      echo "  menuentry 'Boot Snapshot: $desc' --class snapshot {"
       echo "    load_video"
       echo "    insmod gzio"
       echo "    insmod part_gpt"
       echo "    insmod btrfs"
-      echo "    search --no-floppy --fs-uuid --set=root \$root_uuid"
-      echo "    linux /@snapshots/$num/snapshot/boot/vmlinuz root=UUID=\$root_uuid rootflags=subvol=@snapshots/$num/snapshot ro quiet splash"
+      echo "    search --no-floppy --fs-uuid --set=root $root_uuid"
+      echo "    linux /@snapshots/$num/snapshot/boot/vmlinuz root=UUID=$root_uuid rootflags=subvol=@snapshots/$num/snapshot ro systemd.volatile=overlay quiet splash"
       echo "    initrd /@snapshots/$num/snapshot/boot/initrd.img"
       echo "  }"
     done

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# alien-add-ons — Compatibility alias opening Alien Store
+# SPDX-License-Identifier: GPL-2.0-only
+set -euo pipefail
+
+exec /usr/bin/alien-store "$@"

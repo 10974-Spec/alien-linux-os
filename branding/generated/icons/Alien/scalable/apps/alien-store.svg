@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F8EF7"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
+    </linearGradient>
+    <filter id="storeShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#storeGrad)" filter="url(#storeShadow)"/>
+  <!-- Shopping bag silhouette -->
+  <path d="M140 180 L372 180 L352 400 L160 400 Z" fill="#FFFFFF" opacity="0.95"/>
+  <!-- Bag handles -->
+  <path d="M200 180 C200 120, 312 120, 312 180" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round"/>
+  <!-- Downward arrow / install symbol badge -->
+  <circle cx="256" cy="290" r="56" fill="#4F8EF7"/>
+  <path d="M256 256 L256 314 M236 296 L256 316 L276 296" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

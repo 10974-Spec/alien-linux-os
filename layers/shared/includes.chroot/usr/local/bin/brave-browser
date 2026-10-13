@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Alien OS — Brave Browser GPU Detection and Launch Wrapper
+# Adds software-rendering flags ONLY when no hardware GPU acceleration is detected.
+# NEVER disables sandbox or web security.
+set -eu
+
+REAL_BRAVE="/opt/brave.com/brave/brave-browser"
+if [ ! -x "$REAL_BRAVE" ]; then
+    REAL_BRAVE="/usr/bin/brave-browser-stable"
+fi
+
+EXTRA_FLAGS=()
+
+HAS_GPU=0
+if command -v glxinfo >/dev/null 2>&1; then
+    RENDERER=$(glxinfo -B 2>/dev/null | grep -i "OpenGL renderer string:" | head -1 || true)
+    if [ -n "$RENDERER" ] && ! echo "$RENDERER" | grep -qiE "llvmpipe|softpipe|swrast|virgl"; then
+        HAS_GPU=1
+    fi
+elif lspci 2>/dev/null | grep -qiE "vga.*(intel|nvidia|amd|ati|radeon)"; then
+    HAS_GPU=1
+fi
+
+if [ "$HAS_GPU" -eq 0 ]; then
+    EXTRA_FLAGS+=(
+        "--disable-gpu"
+        "--disable-software-rasterizer"
+        "--enable-features=UseSkiaRenderer"
+    )
+fi
+
+exec "$REAL_BRAVE" "${EXTRA_FLAGS[@]}" "$@"
