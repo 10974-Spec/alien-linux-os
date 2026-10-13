@@ -1,0 +1,92 @@
+default: panel_3_1
+wallpapers:
+  - id: panel_3_1
+    source: panel_3_1.svg
+    filename: Alien-Default.png
+    title: "Alien Default (Panel 3.1)"
+    is_default: true
+    sizes:
+      - width: 3840
+        height: 2160
+      - width: 1920
+        height: 1080
+  - id: panel_1_1
+    source: panel_1_1.svg
+    filename: Alien-Panel-1-1.png
+    title: "Alien Panel 1.1"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_1_2
+    source: panel_1_2.svg
+    filename: Alien-Panel-1-2.png
+    title: "Alien Panel 1.2"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_1_3
+    source: panel_1_3.svg
+    filename: Alien-Panel-1-3.png
+    title: "Alien Panel 1.3"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_2_1
+    source: panel_2_1.svg
+    filename: Alien-Panel-2-1.png
+    title: "Alien Panel 2.1"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_2_2
+    source: panel_2_2.svg
+    filename: Alien-Panel-2-2.png
+    title: "Alien Panel 2.2"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_2_3
+    source: panel_2_3.svg
+    filename: Alien-Panel-2-3.png
+    title: "Alien Panel 2.3"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_3_2
+    source: panel_3_2.svg
+    filename: Alien-Panel-3-2.png
+    title: "Alien Panel 3.2"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: panel_3_3
+    source: panel_3_3.svg
+    filename: Alien-Panel-3-3.png
+    title: "Alien Panel 3.3"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: bg1
+    source: bg1.svg
+    filename: Alien-Sky.png
+    title: "Alien Sky"
+    is_default: false
+    sizes:
+      - width: 2560
+        height: 1440
+  - id: bg2
+    source: bg2.png
+    filename: Alien-Neon.png
+    title: "Alien Neon"
+    is_default: false
+    sizes:
+      - width: 1672
+        height: 941

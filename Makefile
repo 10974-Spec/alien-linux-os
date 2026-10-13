@@ -1,6 +1,11 @@
-.PHONY: all check iso-lite iso-full gate-lite gate-full test-qemu clean clean-iso
+.PHONY: all check iso-lite iso-full gate-lite gate-full test-qemu clean clean-iso wallpapers
 
 all: iso-lite
+
+wallpapers:
+	@echo "Rendering Alien wallpapers..."
+	./branding/build-wallpapers.py
+
 
 check:
 	@echo "Running lint checks..."
