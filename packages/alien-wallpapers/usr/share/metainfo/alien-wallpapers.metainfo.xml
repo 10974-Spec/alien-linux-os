@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>org.alien.wallpapers</id>
+  <name>Alien Wallpapers</name>
+  <summary>Official wallpaper artwork collection for Alien OS</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>Proprietary</project_license>
+  <description>
+    <p>
+      Official curated collection of 11 wallpapers designed for Alien OS.
+      Includes Alien-Default (Panel 3.1) in 4K and 1080p, 8 dark sci-fi panel
+      variations, Alien-Sky, and Alien-Neon.
+    </p>
+  </description>
+  <developer id="org.alien">
+    <name>Alien OS Project</name>
+  </developer>
+</component>

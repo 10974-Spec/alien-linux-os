@@ -1,0 +1,12 @@
+Package: alien-wallpaper-migrate
+Version: 1.0.0-1
+Section: x11
+Priority: optional
+Architecture: all
+Depends: alien-wallpapers, pcmanfm-qt
+Maintainer: Alien OS Team <team@alienos.org>
+Description: Alien OS wallpaper migration helper
+ Autostart-once script that migrates existing user homes from old Alien default
+ wallpaper paths (alien-bg1.png, alien-bg2.png) to the new panel_3_1 default.
+ Never overrides a custom wallpaper chosen by the user. Tracked by a version
+ marker in ~/.config/alien/ to run exactly once per upgrade.

@@ -37,16 +37,9 @@ EOF
 cp -a "$ETC_QTERMINAL/qterminal.ini" "$SKEL_QTERMINAL/qterminal.ini"
 
 
-# Ensure Alien panel wallpapers are in backgrounds
-DEST_BG="$WORK/config/includes.chroot/usr/share/backgrounds"
-mkdir -p "$DEST_BG"
-cp "$SRC"/branding/generated/backgrounds/panel_*.png "$DEST_BG/" 2>/dev/null || true
-cp "$SRC"/branding/generated/backgrounds/panel_*.svg "$DEST_BG/" 2>/dev/null || true
-cp "$SRC"/branding-assets/bg/panel_*.svg "$DEST_BG/" 2>/dev/null || true
-if [ -f "$DEST_BG/panel_3_1.png" ]; then
-    ln -sf panel_3_1.png "$DEST_BG/alien-bg1.png"
-    ln -sf panel_3_1.png "$DEST_BG/default.png"
-fi
+# Wallpapers are shipped by the alien-wallpapers.deb package (layers/shared/packages.chroot/).
+# Installed to /usr/share/backgrounds/alien/ with a stable default.png symlink.
+# Legacy compatibility symlinks alien-bg1.png and alien-bg2.png are also in the .deb.
 
 # Ensure alien-launcher icon exists in hicolor and scalable
 DEST_ICONS="$WORK/config/includes.chroot/usr/share/icons/hicolor"
@@ -138,8 +131,8 @@ cp -a "$ETC_LXQT/lxqt.conf" "$SKEL_LXQT/lxqt.conf"
 cat > "$ETC_PCMANFM/settings.conf" <<EOF
 [Desktop]
 DesktopShortcuts=Home, Trash, Computer, Network
-Wallpaper=/usr/share/backgrounds/panel_3_1.png
-WallpaperMode=stretch
+Wallpaper=/usr/share/backgrounds/alien/default.png
+WallpaperMode=zoom
 WallpaperRandomize=false
 
 [System]
@@ -629,11 +622,10 @@ if [ -d /usr/share/lxqt/themes/dark ]; then
     fi
     cat > /usr/share/lxqt/themes/alien/wallpaper.cfg <<WPEOF
 [Wallpaper]
-File=/usr/share/backgrounds/alien-bg1.png
-Mode=stretch
+File=/usr/share/backgrounds/alien/default.png
+Mode=zoom
 WPEOF
-    ln -sf /usr/share/backgrounds/alien-bg1.png /usr/share/lxqt/themes/debian/wallpaper.svg 2>/dev/null || true
-    ln -sf /usr/share/backgrounds/alien-bg1.png /usr/share/lxqt/themes/debian/wallpaper.png 2>/dev/null || true
+    ln -sf /usr/share/backgrounds/alien/default.png /usr/share/lxqt/themes/debian/wallpaper.png 2>/dev/null || true
 fi
 
 # Replace all LXQt hummingbird helix graphics with Alien logo2

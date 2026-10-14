@@ -1,0 +1,10 @@
+Package: alien-wallpapers
+Version: 1.0.0-1
+Section: x11
+Priority: optional
+Architecture: all
+Maintainer: Alien OS Team <team@alienos.org>
+Description: Official wallpapers for Alien OS
+ A curated collection of 11 wallpapers for Alien OS, including Alien-Default
+ (Panel 3.1), 8 dark sci-fi panel variants, Alien-Sky, and Alien-Neon.
+ Original artwork by Alien creator, licensed for use in Alien OS.

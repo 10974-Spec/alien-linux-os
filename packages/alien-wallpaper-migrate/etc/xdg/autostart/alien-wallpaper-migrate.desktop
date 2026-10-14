@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Alien Wallpaper Migration
+Exec=/usr/bin/alien-wallpaper-migrate
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+Comment=Migrates old Alien wallpaper paths to new default (runs once)

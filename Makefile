@@ -1,4 +1,4 @@
-.PHONY: all check iso-lite iso-full gate-lite gate-full test-qemu clean clean-iso wallpapers
+.PHONY: all check check-wallpapers iso-lite iso-full gate-lite gate-full test-qemu clean clean-iso wallpapers
 
 all: iso-lite
 
@@ -10,6 +10,14 @@ wallpapers:
 check:
 	@echo "Running lint checks..."
 	ci/run-local.sh
+	@echo "Running wallpaper gate check..."
+	$(MAKE) check-wallpapers
+	@echo "Running wallpaper migration unit tests..."
+	bash tests/run-wallpaper-migrate-tests.sh
+
+check-wallpapers:
+	@echo "Verifying alien-wallpapers package gate..."
+	@python3 tests/check-wallpapers-gate.py
 
 clean-iso:
 	@echo "Cleaning live-build caches and build state..."

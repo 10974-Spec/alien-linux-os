@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: alien-wallpapers
+Source: https://alienos.org
+
+Files: *
+Copyright: (C) Alien OS Author
+License: Custom-Alien-Artwork
+ All wallpaper images (panel_1_1 through panel_3_3, bg1, and bg2) are original
+ artwork created by the author of Alien OS, licensed for distribution and use
+ within Alien OS.

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Change Wallpaper
+GenericName=Change Wallpaper
+Comment=Open the wallpaper preferences to choose a desktop background from the Alien collection
+Icon=preferences-desktop-wallpaper
+Exec=pcmanfm-qt --desktop-pref=wallpaper
+Terminal=false
+StartupNotify=false
+Categories=Settings;DesktopSettings;
+Keywords=wallpaper;background;desktop;theme;

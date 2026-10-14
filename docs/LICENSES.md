@@ -77,3 +77,16 @@ This document details the software components, third-party libraries, and assets
 - **Alien Look-and-Feel & Wallpapers:** Alien Project
 - **License:** MIT License
 - **Copyright:** (C) Alien OS Team
+
+---
+
+## Alien OS Official Wallpapers (`alien-wallpapers` package)
+
+- **Component:** `alien-wallpapers` package — 11 background images shipped in `/usr/share/backgrounds/alien/`
+- **Files:** `Alien-Default.png`, `Alien-Default-1080p.png`, `Alien-Panel-1-1.png`, `Alien-Panel-1-2.png`, `Alien-Panel-1-3.png`, `Alien-Panel-2-1.png`, `Alien-Panel-2-2.png`, `Alien-Panel-2-3.png`, `Alien-Panel-3-2.png`, `Alien-Panel-3-3.png`, `Alien-Sky.png`, `Alien-Neon.png` (plus stable symlink `default.png` → `Alien-Default.png`).
+- **Source assets:** `branding-assets/bg/` (11 files — SVGs with embedded raster content, plus `bg2.png`)
+- **Author:** Original artwork by the Alien OS creator. All rights reserved.
+- **License:** Permission granted for use within Alien OS and its derivative builds. Not for redistribution outside Alien OS.
+- **SPDX identifier:** `LicenseRef-AlienOS-Wallpapers-Proprietary`
+- **Rendered at build time** by `branding/build-wallpapers.py` using `rsvg-convert` (librsvg); source SVGs are not shipped in the ISO.
+- **Manifest:** `branding/wallpapers.yaml` — edit to rename wallpapers or change the default.

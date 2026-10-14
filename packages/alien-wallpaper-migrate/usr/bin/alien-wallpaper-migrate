@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# alien-wallpaper-migrate — one-shot wallpaper migration for existing user homes
+# Runs at login via XDG autostart. Migrates old Alien default wallpaper paths
+# to the new /usr/share/backgrounds/alien/default.png.
+# Rules:
+#   1. If the user's wallpaper is UNSET → set to new default
+#   2. If the user's wallpaper is one of the OLD Alien defaults → switch to new default
+#   3. If the user has ANY other wallpaper → leave it completely untouched
+# Version marker: ~/.config/alien/wallpaper-migrate.v1 (prevents re-runs)
+set -euo pipefail
+
+MARKER="${HOME}/.config/alien/wallpaper-migrate.v1"
+NEW_DEFAULT="/usr/share/backgrounds/alien/default.png"
+PCMANFM_CONF="${HOME}/.config/pcmanfm-qt/lxqt/settings.conf"
+
+# Old Alien default paths from previous builds
+OLD_DEFAULTS=(
+    "/usr/share/backgrounds/panel_3_1.png"
+    "/usr/share/backgrounds/alien-bg1.png"
+    "/usr/share/backgrounds/default.png"
+    "/usr/share/backgrounds/bg1.svg"
+    ""
+)
+
+# Already migrated this session?
+if [ -f "$MARKER" ]; then
+    exit 0
+fi
+
+mkdir -p "${HOME}/.config/alien"
+
+# Read current wallpaper setting
+CURRENT_WP=""
+if [ -f "$PCMANFM_CONF" ]; then
+    CURRENT_WP=$(grep -E "^Wallpaper=" "$PCMANFM_CONF" 2>/dev/null | cut -d= -f2- | tr -d ' \r\n') || true
+fi
+
+# Check if current wallpaper is one of the old defaults (or unset)
+SHOULD_MIGRATE=false
+if [ -z "$CURRENT_WP" ]; then
+    SHOULD_MIGRATE=true
+fi
+
+for old in "${OLD_DEFAULTS[@]}"; do
+    if [ "$CURRENT_WP" = "$old" ]; then
+        SHOULD_MIGRATE=true
+        break
+    fi
+done
+
+if [ "$SHOULD_MIGRATE" = "true" ]; then
+    # Apply the new default via pcmanfm-qt (updates config and reloads desktop)
+    if command -v pcmanfm-qt &>/dev/null && [ -n "${DISPLAY:-}" ]; then
+        pcmanfm-qt --set-wallpaper="$NEW_DEFAULT" --wallpaper-mode=zoom 2>/dev/null || true
+    else
+        # Fallback: write config directly if pcmanfm-qt not available
+        mkdir -p "$(dirname "$PCMANFM_CONF")"
+        if [ -f "$PCMANFM_CONF" ]; then
+            # Update existing config
+            if grep -qE "^Wallpaper=" "$PCMANFM_CONF"; then
+                sed -i "s|^Wallpaper=.*|Wallpaper=${NEW_DEFAULT}|" "$PCMANFM_CONF"
+            else
+                # Add under [Desktop] section
+                sed -i "/^\[Desktop\]/a Wallpaper=${NEW_DEFAULT}" "$PCMANFM_CONF"
+            fi
+            if grep -qE "^WallpaperMode=" "$PCMANFM_CONF"; then
+                sed -i "s|^WallpaperMode=.*|WallpaperMode=zoom|" "$PCMANFM_CONF"
+            else
+                sed -i "/^\[Desktop\]/a WallpaperMode=zoom" "$PCMANFM_CONF"
+            fi
+        fi
+    fi
+    logger -t alien-wallpaper-migrate "Migrated wallpaper from '${CURRENT_WP}' to '${NEW_DEFAULT}'"
+else
+    logger -t alien-wallpaper-migrate "Custom wallpaper '${CURRENT_WP}' detected — skipped migration"
+fi
+
+# Write version marker so this script is never re-run for v1
+touch "$MARKER"
