@@ -1,29 +1,60 @@
-# Ignore ISO images and large builds in root and out/
-out/*.iso
-out/*.iso.sha256
-out/build.log
-out/baseline-backup/*.iso
-out/baseline-backup/*.iso.sha256
+# build output (never commit)
+*.iso
+*.iso.sha256
+*.img
+*.qcow2
+*.qcow
+*.raw
+*.vdi
+*.squashfs
+*.sfs
+*.part*
+*.tar.gz
+*.tar.xz
+*.tar.zst
+*.zip
+*.7z
+*.deb
+*.udeb
+chroot/
+binary/
+cache/
+.build/
+live-image-*
+*.contents
+*.files
+*.packages
+build.log
+*.log
+out/
+dist/
+tmp/
 
-# Ignore VM disk images and sockets
+# test artifacts & virtual machine files
+docs/ship-proof/**/*.ppm
+*.serial.log
+OVMF_VARS*.fd
 vm/*.qcow2
 vm/*.sock
 vm/*.fd
-/tmp/qemu*
+vm/*.log
+vm/*.png
+!docs/ship-proof/**/*.png
 
-# Python and temp
+# Python & virtualenv temp
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
-*.ppm
-
-# Build work directories
-build/work/
-.build/
 .venv/
-*.log
 
-packages/*.deb
-vm/*.png
-vm/*.log
+# secrets (never commit)
+.env*
+!branding/tokens.env
+*.pem
+id_rsa*
+*.key
+
+# OS junk
+.DS_Store
+Thumbs.db
