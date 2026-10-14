@@ -65,6 +65,7 @@ unsquashfs -d "$ROOTFS" -f "$TMPDIR/filesystem.squashfs" \
     "etc/brave" \
     "etc/alien-build" \
     "etc/plymouth" \
+    "usr/share/backgrounds" \
     >/dev/null 2>&1 || true
 
 FAIL_COUNT=0
@@ -254,6 +255,96 @@ if [ -f "$ROOTFS/etc/alien-build" ]; then
     record_result "OK" "BUILD-STAMP" "/etc/alien-build" "$STAMP"
 else
     record_result "FAIL" "BUILD-STAMP" "/etc/alien-build" "MISSING"
+fi
+
+echo
+echo "--- 8. Wallpaper Package & Configuration Gate ---"
+# Check alien-wallpapers installed
+if grep -q "Package: alien-wallpapers" "$ROOTFS/var/lib/dpkg/status" 2>/dev/null; then
+    record_result "OK" "WALLPAPER-PKG" "alien-wallpapers" "package installed in status database"
+else
+    record_result "FAIL" "WALLPAPER-PKG" "alien-wallpapers" "package missing from status database"
+fi
+
+if grep -q "Package: alien-wallpaper-migrate" "$ROOTFS/var/lib/dpkg/status" 2>/dev/null; then
+    record_result "OK" "WALLPAPER-PKG" "alien-wallpaper-migrate" "migration package installed"
+else
+    record_result "FAIL" "WALLPAPER-PKG" "alien-wallpaper-migrate" "migration package missing"
+fi
+
+# Check all 11 wallpapers exist and non-empty
+WALLPAPER_DIR="$ROOTFS/usr/share/backgrounds/alien"
+EXPECTED_WP=(
+    "Alien-Default.png"
+    "Alien-Default-1080p.png"
+    "Alien-Panel-1-1.png"
+    "Alien-Panel-1-2.png"
+    "Alien-Panel-1-3.png"
+    "Alien-Panel-2-1.png"
+    "Alien-Panel-2-2.png"
+    "Alien-Panel-2-3.png"
+    "Alien-Panel-3-2.png"
+    "Alien-Panel-3-3.png"
+    "Alien-Sky.png"
+    "Alien-Neon.png"
+)
+
+if [ -d "$WALLPAPER_DIR" ]; then
+    record_result "OK" "WALLPAPER-DIR" "$WALLPAPER_DIR" "directory exists"
+    for wp in "${EXPECTED_WP[@]}"; do
+        if [ -s "$WALLPAPER_DIR/$wp" ]; then
+            record_result "OK" "WALLPAPER-FILE" "$wp" "present ($(stat -c%s "$WALLPAPER_DIR/$wp" 2>/dev/null || echo '?') bytes)"
+        else
+            record_result "FAIL" "WALLPAPER-FILE" "$wp" "missing or empty"
+        fi
+    done
+
+    # Check default.png symlink
+    if [ -L "$WALLPAPER_DIR/default.png" ]; then
+        target=$(readlink "$WALLPAPER_DIR/default.png")
+        if [ "$target" = "Alien-Default.png" ]; then
+            record_result "OK" "WALLPAPER-LINK" "default.png" "symlink points to Alien-Default.png"
+        else
+            record_result "FAIL" "WALLPAPER-LINK" "default.png" "symlink points to $target (expected Alien-Default.png)"
+        fi
+    else
+        record_result "FAIL" "WALLPAPER-LINK" "default.png" "symlink missing"
+    fi
+else
+    record_result "FAIL" "WALLPAPER-DIR" "$WALLPAPER_DIR" "directory missing"
+fi
+
+# Check skel and etc/xdg pcmanfm-qt configuration
+SKEL_PCMANFM_CONF="$ROOTFS/etc/skel/.config/pcmanfm-qt/lxqt/settings.conf"
+if [ -f "$SKEL_PCMANFM_CONF" ]; then
+    if grep -q "/usr/share/backgrounds/alien/default.png" "$SKEL_PCMANFM_CONF"; then
+        record_result "OK" "WALLPAPER-SKEL" "settings.conf" "points to default.png"
+    else
+        record_result "FAIL" "WALLPAPER-SKEL" "settings.conf" "does not point to default.png"
+    fi
+    if grep -qi "WallpaperMode=zoom" "$SKEL_PCMANFM_CONF"; then
+        record_result "OK" "WALLPAPER-SKEL" "mode" "WallpaperMode=zoom"
+    else
+        record_result "FAIL" "WALLPAPER-SKEL" "mode" "WallpaperMode not zoom"
+    fi
+else
+    record_result "FAIL" "WALLPAPER-SKEL" "settings.conf" "missing in etc/skel"
+fi
+
+XDG_PCMANFM_CONF="$ROOTFS/etc/xdg/pcmanfm-qt/lxqt/settings.conf"
+if [ -f "$XDG_PCMANFM_CONF" ]; then
+    if grep -q "/usr/share/backgrounds/alien/default.png" "$XDG_PCMANFM_CONF"; then
+        record_result "OK" "WALLPAPER-XDG" "settings.conf" "points to default.png"
+    else
+        record_result "FAIL" "WALLPAPER-XDG" "settings.conf" "does not point to default.png"
+    fi
+    if grep -qi "WallpaperMode=zoom" "$XDG_PCMANFM_CONF"; then
+        record_result "OK" "WALLPAPER-XDG" "mode" "WallpaperMode=zoom"
+    else
+        record_result "FAIL" "WALLPAPER-XDG" "mode" "WallpaperMode not zoom"
+    fi
+else
+    record_result "FAIL" "WALLPAPER-XDG" "settings.conf" "missing in etc/xdg"
 fi
 
 echo "============================================================"
